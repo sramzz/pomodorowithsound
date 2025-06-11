@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pomodoro Timer with Sound</title>
+    <!-- Import Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Import Tone.js for audio generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom styles for the modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        .modal-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 flex flex-col items-center justify-center min-h-screen p-4 sm:p-6">
+
+    <div class="w-full max-w-2xl mx-auto">
+        <!-- Main Timer Container -->
+        <div class="bg-white rounded-xl shadow-lg p-6 sm:p-8 text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-slate-800 mb-4">Pomodoro Timer</h1>
+            <input type="text" id="goalInput" placeholder="Enter your goal for this session" required class="w-full p-3 border border-slate-300 rounded-lg mb-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+            <div id="timer" class="text-7xl sm:text-8xl font-bold text-slate-900 my-6">25:00</div>
+            
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                 <select id="durationSelect" class="w-full sm:w-auto bg-blue-500 text-white font-semibold py-3 px-4 rounded-lg cursor-pointer hover:bg-blue-600 transition appearance-none text-center">
+                    <option value="5">5 minutes</option>
+                    <option value="10">10 minutes</option>
+                    <option value="15">15 minutes</option>
+                    <option value="20">20 minutes</option>
+                    <option value="25" selected>25 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                    <option value="60">60 minutes</option>
+                    <option value="90">90 minutes</option>
+                </select>
+                <div class="flex gap-3">
+                    <button id="startBtn" class="bg-emerald-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-emerald-600 transition w-28">Start</button>
+                    <button id="resetBtn" class="bg-yellow-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-yellow-600 transition w-28">Reset</button>
+                    <button id="endBtn" class="bg-red-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-600 transition w-28">End</button>
+                </div>
+            </div>
+            <div class="mt-6">
+                <button id="testSoundBtn" class="bg-slate-400 text-white font-semibold py-2 px-4 rounded-lg hover:bg-slate-500 transition text-sm">Test Sound</button>
+            </div>
+        </div>
+
+        <!-- Session Log -->
+        <div id="sessionLog" class="bg-white rounded-xl shadow-lg p-6 sm:p-8 w-full">
+            <h2 class="text-2xl font-bold text-slate-800 mb-4">Session Log</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-slate-500">
+                    <thead class="text-xs text-slate-700 uppercase bg-slate-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">Goal</th>
+                            <th scope="col" class="px-6 py-3">Start Time</th>
+                            <th scope="col" class="px-6 py-3">End Time</th>
+                            <th scope="col" class="px-6 py-3">Duration</th>
+                            <th scope="col" class="px-6 py-3">Pauses</th>
+                            <th scope="col" class="px-6 py-3">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sessionLogBody">
+                        <!-- Log rows will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- JSON Output -->
+        <textarea id="jsonOutput" readonly class="w-full h-40 bg-slate-800 text-green-300 font-mono text-xs p-4 rounded-lg mt-8"></textarea>
+    </div>
+
+    <!-- Completion Modal -->
+    <div id="completionModal" class="modal-overlay">
+        <div class="bg-white rounded-xl shadow-2xl p-8 text-center max-w-sm w-full">
+            <h2 class="text-2xl font-bold text-slate-800 mb-2">Session Complete!</h2>
+            <p class="text-slate-600 mb-6">Great work. Time for a break!</p>
+            <button id="closeModalBtn" class="bg-blue-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-600 transition">OK</button>
+        </div>
+    </div>
+
+
+    <script>
+        // DOM Elements
+        const timerDisplay = document.getElementById('timer');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const endBtn = document.getElementById('endBtn');
+        const durationSelect = document.getElementById('durationSelect');
+        const goalInput = document.getElementById('goalInput');
+        const sessionLogBody = document.getElementById('sessionLogBody');
+        const jsonOutput = document.getElementById('jsonOutput');
+        const completionModal = document.getElementById('completionModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const testSoundBtn = document.getElementById('testSoundBtn');
+
+        // Timer State
+        let startTime;
+        let timeLeft = 25 * 60; // Default to 25 minutes in seconds
+        let isRunning = false;
+        let animationFrameId;
+        let duration = 25 * 60; // Default duration in seconds
+        let currentSession = null;
+        let sessions = [];
+
+        // --- LOCAL STORAGE & DATA HANDLING ---
+
+        /**
+         * Checks if localStorage is available to prevent crashes in restricted environments.
+         */
+        function isLocalStorageAvailable() {
+            try {
+                localStorage.setItem('test', 'test');
+                localStorage.removeItem('test');
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+        
+        /**
+         * Loads sessions from localStorage when the page loads.
+         */
+        function loadSessions() {
+            if (isLocalStorageAvailable()) {
+                const storedSessions = localStorage.getItem('pomodoroSessions');
+                if (storedSessions) {
+                    sessions = JSON.parse(storedSessions);
+                }
+            } else {
+                console.warn('localStorage is not available. Session data will not persist.');
+            }
+            updateSessionLog();
+        }
+
+        /**
+         * Saves the current list of sessions to localStorage.
+         */
+        function saveSessions() {
+            if (isLocalStorageAvailable()) {
+                localStorage.setItem('pomodoroSessions', JSON.stringify(sessions));
+            }
+        }
+
+        // --- UTILITY FUNCTIONS ---
+
+        /**
+         * Formats a date object into a readable string (e.g., "06/11/2025, 11:15:30 AM").
+         * @param {string} date - The ISO date string to format.
+         */
+        function formatDate(date) {
+            return new Date(date).toLocaleString('en-US', {
+                month: '2-digit', day: '2-digit', year: 'numeric', 
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+            });
+        }
+
+        /**
+         * Formats a duration in seconds to a "Xm Ys" string.
+         * @param {number} seconds - The duration in seconds.
+         */
+        function formatDuration(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes}m ${remainingSeconds}s`;
+        }
+
+        /**
+         * Creates a readable summary of pause intervals.
+         * @param {Array} pauses - An array of pause objects.
+         */
+        function formatPauses(pauses) {
+            if (!pauses || pauses.length === 0) return 'None';
+            return pauses.map(pause => 
+                `Paused for ${Math.round((new Date(pause.resumeTime) - new Date(pause.pauseTime)) / 1000)}s`
+            ).join('<br>');
+        }
+
+        // --- SOUND FUNCTION ---
+        
+        /**
+         * Plays a notification sound using Tone.js.
+         */
+        function playSound() {
+            // Ensure the audio context is running, as browsers require user interaction to start it.
+            if (Tone.context.state !== 'running') {
+                Tone.context.resume();
+            }
+            // Create a simple synthesizer and connect it to the main output (your speakers).
+            const synth = new Tone.Synth().toDestination();
+            // Play a sequence of notes to create a pleasant notification sound.
+            const now = Tone.now();
+            synth.triggerAttackRelease("C5", "8n", now);
+            synth.triggerAttackRelease("G5", "8n", now + 0.2);
+        }
+
+        // --- CORE TIMER LOGIC ---
+
+        /**
+         * Updates the timer display element with the current timeLeft.
+         */
+        function updateDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        /**
+         * Starts or pauses the timer, handling UI changes and session state.
+         */
+        function startTimer() {
+            // Start Tone.js on the first user interaction, as required by browsers.
+            Tone.start();
+
+            if (!isRunning) {
+                // Prevent starting without a goal.
+                if (!goalInput.value.trim()) {
+                    goalInput.classList.add('border-red-500', 'ring-red-500');
+                    goalInput.placeholder = "A goal is required to start!";
+                    setTimeout(() => {
+                        goalInput.classList.remove('border-red-500', 'ring-red-500');
+                        goalInput.placeholder = "Enter your goal for this session";
+                    }, 2000);
+                    return;
+                }
+
+                // --- Start the timer ---
+                isRunning = true;
+                startBtn.textContent = 'Pause';
+                startBtn.classList.replace('bg-emerald-500', 'bg-orange-500');
+                startBtn.classList.replace('hover:bg-emerald-600', 'hover:bg-orange-600');
+                durationSelect.disabled = true;
+                goalInput.disabled = true;
+
+                // Create a new session if one isn't active.
+                if (!currentSession) {
+                    currentSession = {
+                        goal: goalInput.value,
+                        startTime: new Date().toISOString(),
+                        endTime: null,
+                        duration: 0,
+                        pauses: []
+                    };
+                } else if (currentSession.pauses.length > 0) { // Log resume time if resuming from a pause.
+                     const lastPause = currentSession.pauses[currentSession.pauses.length - 1];
+                     if (!lastPause.resumeTime) {
+                        lastPause.resumeTime = new Date().toISOString();
+                     }
+                }
+                
+                // Calculate the correct start time to account for pauses.
+                startTime = Date.now() - ((duration - timeLeft) * 1000);
+                animationFrameId = requestAnimationFrame(updateTimer);
+
+            } else {
+                // --- Pause the timer ---
+                isRunning = false;
+                cancelAnimationFrame(animationFrameId);
+                startBtn.textContent = 'Resume';
+                startBtn.classList.replace('bg-orange-500', 'bg-emerald-500');
+                startBtn.classList.replace('hover:bg-orange-600', 'hover:bg-emerald-600');
+
+                // Log the pause time.
+                currentSession.pauses.push({
+                    pauseTime: new Date().toISOString(),
+                    resumeTime: null
+                });
+            }
+        }
+
+        /**
+         * The main loop that updates the timer every frame using requestAnimationFrame.
+         */
+        function updateTimer() {
+            if (!isRunning) return;
+
+            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+            timeLeft = duration - elapsedTime;
+
+            if (timeLeft <= 0) {
+                // --- Timer Finished ---
+                timeLeft = 0;
+                updateDisplay();
+                playSound();
+                completionModal.classList.add('visible');
+                endSession(true); // End session automatically.
+            } else {
+                // Continue the loop.
+                animationFrameId = requestAnimationFrame(updateTimer);
+            }
+            
+            updateDisplay();
+        }
+
+        /**
+         * Resets the timer to its initial state based on the selected duration.
+         */
+        function resetTimer() {
+            isRunning = false;
+            cancelAnimationFrame(animationFrameId);
+            duration = parseInt(durationSelect.value) * 60;
+            timeLeft = duration;
+            updateDisplay();
+
+            startBtn.textContent = 'Start';
+            startBtn.classList.replace('bg-orange-500', 'bg-emerald-500');
+            startBtn.classList.replace('hover:bg-orange-600', 'hover:bg-emerald-600');
+            durationSelect.disabled = false;
+            goalInput.disabled = false;
+            goalInput.value = '';
+            currentSession = null;
+        }
+
+        /**
+         * Changes the timer duration when a new value is selected from the dropdown.
+         */
+        function changeDuration() {
+            if (!isRunning) {
+                duration = parseInt(durationSelect.value) * 60;
+                timeLeft = duration;
+                updateDisplay();
+            }
+        }
+
+        /**
+         * Ends the current session, logs it, and resets the timer.
+         * @param {boolean} isFinished - True if the session ended naturally by the timer finishing.
+         */
+        function endSession(isFinished = false) {
+             isRunning = false;
+             cancelAnimationFrame(animationFrameId);
+             
+             if (currentSession) {
+                currentSession.endTime = new Date().toISOString();
+                
+                // Calculate total pause time to get accurate session duration.
+                let totalPauseTime = 0;
+                currentSession.pauses.forEach(p => {
+                    if(p.resumeTime) {
+                        totalPauseTime += new Date(p.resumeTime) - new Date(p.pauseTime);
+                    }
+                });
+
+                currentSession.duration = Math.round(((new Date(currentSession.endTime) - new Date(currentSession.startTime)) - totalPauseTime) / 1000);
+                
+                sessions.unshift(currentSession); // Add new session to the top of the log.
+                updateSessionLog();
+                saveSessions();
+             }
+
+             // Reset timer state but don't clear the goal if the timer finished naturally.
+             resetTimer();
+             if (isFinished) {
+                 goalInput.disabled = false;
+             }
+        }
+
+        /**
+         * Renders the session data into the log table.
+         */
+        function updateSessionLog() {
+            sessionLogBody.innerHTML = '';
+            sessions.forEach((session, index) => {
+                const row = document.createElement('tr');
+                row.className = 'bg-white border-b';
+                row.innerHTML = `
+                    <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">${session.goal}</td>
+                    <td class="px-6 py-4">${formatDate(session.startTime)}</td>
+                    <td class="px-6 py-4">${session.endTime ? formatDate(session.endTime) : 'In progress'}</td>
+                    <td class="px-6 py-4">${formatDuration(session.duration)}</td>
+                    <td class="px-6 py-4">${formatPauses(session.pauses)}</td>
+                    <td class="px-6 py-4">
+                        <button class="deleteBtn text-red-500 hover:text-red-700" data-index="${index}">❌</button>
+                    </td>
+                `;
+                sessionLogBody.appendChild(row);
+            });
+            jsonOutput.value = JSON.stringify(sessions, null, 2);
+
+            // Add event listeners to new delete buttons.
+            document.querySelectorAll('.deleteBtn').forEach(btn => {
+                btn.addEventListener('click', deleteSession);
+            });
+        }
+        
+        /**
+         * Deletes a specific session from the log.
+         * @param {Event} event - The click event from the delete button.
+         */
+        function deleteSession(event) {
+            const index = parseInt(event.currentTarget.getAttribute('data-index'));
+            sessions.splice(index, 1);
+            updateSessionLog();
+            saveSessions();
+        }
+
+        // --- EVENT LISTENERS ---
+        startBtn.addEventListener('click', startTimer);
+        resetBtn.addEventListener('click', () => {
+             if (currentSession) endSession();
+             resetTimer();
+        });
+        endBtn.addEventListener('click', () => endSession());
+        durationSelect.addEventListener('change', changeDuration);
+        closeModalBtn.addEventListener('click', () => completionModal.classList.remove('visible'));
+        testSoundBtn.addEventListener('click', () => {
+            // Must also call Tone.start() here in case this is the first interaction.
+            Tone.start();
+            playSound();
+        });
+
+        // Keyboard shortcut for spacebar to start/pause.
+        document.addEventListener('keydown', (e) => {
+            // Prevents firing while typing in the input field.
+            if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT') {
+                e.preventDefault();
+                startTimer();
+            }
+        });
+
+        // --- INITIALIZATION ---
+        loadSessions();
+        updateDisplay();
+    </script>
+</body>
+</html>
