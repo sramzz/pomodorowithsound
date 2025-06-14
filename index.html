@@ -120,10 +120,11 @@
         const testSoundBtn = document.getElementById('testSoundBtn');
 
         // Timer State
-        let startTime;
+        let targetTime; // The exact timestamp when the timer should end
         let timeLeft = 25 * 60; // Default to 25 minutes in seconds
         let isRunning = false;
-        let animationFrameId;
+        let animationFrameId; // For updating the visual display
+        let timeoutId; // For triggering the end of the timer reliably
         let duration = 25 * 60; // Default duration in seconds
         let currentSession = null;
         let sessions = [];
@@ -201,12 +202,34 @@
             ).join('<br>');
         }
 
-        // --- SOUND FUNCTION ---
+        // --- NOTIFICATIONS & SOUND ---
         
+        /**
+         * Asks the user for permission to show notifications if not already granted.
+         */
+        function requestNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        }
+
+        /**
+         * Shows a system notification to the user.
+         */
+        function showSystemNotification() {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('Pomodoro Complete!', {
+                    body: `Your session for "${currentSession?.goal || 'your task'}" has finished.`,
+                    icon: 'https://img.icons8.com/plasticine/100/tomato.png' // A generic tomato icon
+                });
+            }
+        }
+
         /**
          * Plays a notification sound using Tone.js.
          */
         function playSound() {
+            if (typeof Tone === 'undefined') return;
             // Ensure the audio context is running, as browsers require user interaction to start it.
             if (Tone.context.state !== 'running') {
                 Tone.context.resume();
@@ -219,10 +242,39 @@
             synth.triggerAttackRelease("G5", "8n", now + 0.2);
         }
 
+        /**
+         * This function is called reliably by setTimeout when the timer duration has elapsed.
+         */
+        function onTimerEnd() {
+            playSound();
+            showSystemNotification();
+            completionModal.classList.add('visible'); // Show in-page modal
+            endSession(true); // End session automatically
+        }
+
+
         // --- CORE TIMER LOGIC ---
 
         /**
-         * Updates the timer display element with the current timeLeft.
+         * Updates the timer display element. This is run by requestAnimationFrame.
+         */
+        function updateDisplayLoop() {
+            if (!isRunning) return;
+            
+            // This calculation ensures the display is correct even after a background tab becomes active.
+            const newTimeLeft = Math.round((targetTime - Date.now()) / 1000);
+            if (newTimeLeft !== timeLeft) {
+                timeLeft = newTimeLeft > 0 ? newTimeLeft : 0;
+                updateDisplay();
+            }
+
+            if (timeLeft > 0) {
+                animationFrameId = requestAnimationFrame(updateDisplayLoop);
+            }
+        }
+        
+        /**
+         * Updates the text content of the timer display.
          */
         function updateDisplay() {
             const minutes = Math.floor(timeLeft / 60);
@@ -234,8 +286,9 @@
          * Starts or pauses the timer, handling UI changes and session state.
          */
         function startTimer() {
-            // Start Tone.js on the first user interaction, as required by browsers.
+            // Start Tone.js & request notification permission on first user interaction.
             Tone.start();
+            requestNotificationPermission();
 
             if (!isRunning) {
                 // Prevent starting without a goal.
@@ -251,41 +304,42 @@
 
                 // --- Start the timer ---
                 isRunning = true;
+                targetTime = Date.now() + timeLeft * 1000;
+                
+                // This setTimeout is the key to background reliability.
+                timeoutId = setTimeout(onTimerEnd, timeLeft * 1000);
+                
+                animationFrameId = requestAnimationFrame(updateDisplayLoop);
+
                 startBtn.textContent = 'Pause';
                 startBtn.classList.replace('bg-emerald-500', 'bg-orange-500');
                 startBtn.classList.replace('hover:bg-emerald-600', 'hover:bg-orange-600');
                 durationSelect.disabled = true;
                 goalInput.disabled = true;
 
-                // Create a new session if one isn't active.
                 if (!currentSession) {
                     currentSession = {
                         goal: goalInput.value,
                         startTime: new Date().toISOString(),
-                        endTime: null,
-                        duration: 0,
-                        pauses: []
+                        endTime: null, duration: 0, pauses: []
                     };
-                } else if (currentSession.pauses.length > 0) { // Log resume time if resuming from a pause.
+                } else if (currentSession.pauses.length > 0) {
                      const lastPause = currentSession.pauses[currentSession.pauses.length - 1];
                      if (!lastPause.resumeTime) {
                         lastPause.resumeTime = new Date().toISOString();
                      }
                 }
-                
-                // Calculate the correct start time to account for pauses.
-                startTime = Date.now() - ((duration - timeLeft) * 1000);
-                animationFrameId = requestAnimationFrame(updateTimer);
 
             } else {
                 // --- Pause the timer ---
                 isRunning = false;
-                cancelAnimationFrame(animationFrameId);
+                clearTimeout(timeoutId); // Stop the reliable end-timer.
+                cancelAnimationFrame(animationFrameId); // Stop the visual updates.
+                
                 startBtn.textContent = 'Resume';
                 startBtn.classList.replace('bg-orange-500', 'bg-emerald-500');
                 startBtn.classList.replace('hover:bg-orange-600', 'hover:bg-emerald-600');
 
-                // Log the pause time.
                 currentSession.pauses.push({
                     pauseTime: new Date().toISOString(),
                     resumeTime: null
@@ -294,35 +348,13 @@
         }
 
         /**
-         * The main loop that updates the timer every frame using requestAnimationFrame.
-         */
-        function updateTimer() {
-            if (!isRunning) return;
-
-            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-            timeLeft = duration - elapsedTime;
-
-            if (timeLeft <= 0) {
-                // --- Timer Finished ---
-                timeLeft = 0;
-                updateDisplay();
-                playSound();
-                completionModal.classList.add('visible');
-                endSession(true); // End session automatically.
-            } else {
-                // Continue the loop.
-                animationFrameId = requestAnimationFrame(updateTimer);
-            }
-            
-            updateDisplay();
-        }
-
-        /**
          * Resets the timer to its initial state based on the selected duration.
          */
         function resetTimer() {
             isRunning = false;
+            clearTimeout(timeoutId);
             cancelAnimationFrame(animationFrameId);
+            
             duration = parseInt(durationSelect.value) * 60;
             timeLeft = duration;
             updateDisplay();
@@ -353,12 +385,12 @@
          */
         function endSession(isFinished = false) {
              isRunning = false;
+             clearTimeout(timeoutId);
              cancelAnimationFrame(animationFrameId);
              
-             if (currentSession) {
+             if (currentSession && !currentSession.endTime) { // Ensure session is only logged once
                 currentSession.endTime = new Date().toISOString();
                 
-                // Calculate total pause time to get accurate session duration.
                 let totalPauseTime = 0;
                 currentSession.pauses.forEach(p => {
                     if(p.resumeTime) {
@@ -368,12 +400,11 @@
 
                 currentSession.duration = Math.round(((new Date(currentSession.endTime) - new Date(currentSession.startTime)) - totalPauseTime) / 1000);
                 
-                sessions.unshift(currentSession); // Add new session to the top of the log.
+                sessions.unshift(currentSession);
                 updateSessionLog();
                 saveSessions();
              }
 
-             // Reset timer state but don't clear the goal if the timer finished naturally.
              resetTimer();
              if (isFinished) {
                  goalInput.disabled = false;
@@ -402,7 +433,6 @@
             });
             jsonOutput.value = JSON.stringify(sessions, null, 2);
 
-            // Add event listeners to new delete buttons.
             document.querySelectorAll('.deleteBtn').forEach(btn => {
                 btn.addEventListener('click', deleteSession);
             });
@@ -429,14 +459,12 @@
         durationSelect.addEventListener('change', changeDuration);
         closeModalBtn.addEventListener('click', () => completionModal.classList.remove('visible'));
         testSoundBtn.addEventListener('click', () => {
-            // Must also call Tone.start() here in case this is the first interaction.
             Tone.start();
             playSound();
         });
 
         // Keyboard shortcut for spacebar to start/pause.
         document.addEventListener('keydown', (e) => {
-            // Prevents firing while typing in the input field.
             if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT') {
                 e.preventDefault();
                 startTimer();
