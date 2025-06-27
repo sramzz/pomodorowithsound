@@ -12,8 +12,6 @@ A web page that allows you to track your Pomodoros
 
 # Next Steps
 ## Near term
-  - Host this in my website
-  - Add caching to keep log in the browser even if you close the tab
   - Create a Tauri version to run a OS agnostic local app
   - Add a local db for the Tauri App to keep the log
 ## Long term:
