@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pomodoro Timer with Sound</title>
+    <title>Pomodoro Timer 2.0 with Sound</title>
     <!-- Import Tailwind CSS for modern styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Import Tone.js for audio generation -->
@@ -42,7 +42,7 @@
     <div class="w-full max-w-2xl mx-auto">
         <!-- Main Timer Container -->
         <div class="bg-white rounded-xl shadow-lg p-6 sm:p-8 text-center mb-8">
-            <h1 class="text-3xl sm:text-4xl font-bold text-slate-800 mb-4">Pomodoro Timer</h1>
+            <h1 class="text-3xl sm:text-4xl font-bold text-slate-800 mb-4">Pomodoro Timer 2.0</h1>
             <input type="text" id="goalInput" placeholder="Enter your goal for this session" required class="w-full p-3 border border-slate-300 rounded-lg mb-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
             <div id="timer" class="text-7xl sm:text-8xl font-bold text-slate-900 my-6">25:00</div>
             
@@ -492,5 +492,6 @@
         loadSessions();
         updateDisplay();
     </script>
+    <script src="tests.js"></script>
 </body>
 </html>
