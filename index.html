@@ -128,6 +128,7 @@
         let duration = 25 * 60; // Default duration in seconds
         let currentSession = null;
         let sessions = [];
+        let synth; // To store the synth instance for continuous sound
 
         // --- LOCAL STORAGE & DATA HANDLING ---
 
@@ -235,11 +236,18 @@
                 Tone.context.resume();
             }
             // Create a simple synthesizer and connect it to the main output (your speakers).
-            const synth = new Tone.Synth().toDestination();
-            // Play a sequence of notes to create a pleasant notification sound.
-            const now = Tone.now();
-            synth.triggerAttackRelease("C5", "8n", now);
-            synth.triggerAttackRelease("G5", "8n", now + 0.2);
+            // Store the synth instance to control it later (e.g., stop it).
+            synth = new Tone.Synth().toDestination();
+
+            // Create a loop for the sound.
+            // The loop will play two notes and then repeat every 1 second.
+            new Tone.Loop(time => {
+                synth.triggerAttackRelease("C5", "8n", time);
+                synth.triggerAttackRelease("G5", "8n", time + 0.2);
+            }, "1s").start(0); // Start the loop immediately
+
+            // Start Tone.Transport which is used by Tone.Loop
+            Tone.Transport.start();
         }
 
         /**
@@ -457,7 +465,16 @@
         });
         endBtn.addEventListener('click', () => endSession());
         durationSelect.addEventListener('change', changeDuration);
-        closeModalBtn.addEventListener('click', () => completionModal.classList.remove('visible'));
+        closeModalBtn.addEventListener('click', () => {
+            completionModal.classList.remove('visible');
+            // Stop the sound and dispose of the synth
+            if (synth) {
+                Tone.Transport.stop(); // Stop the transport which stops the loop
+                Tone.Transport.cancel(); // Cancel all scheduled events
+                synth.dispose();
+                synth = null; // Clear the reference
+            }
+        });
         testSoundBtn.addEventListener('click', () => {
             Tone.start();
             playSound();
