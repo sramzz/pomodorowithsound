@@ -251,6 +251,19 @@
         }
 
         /**
+         * Plays a single instance of the notification sound for testing.
+         */
+        function playTestSound() {
+            if (typeof Tone === 'undefined') return;
+            if (Tone.context.state !== 'running') {
+                Tone.context.resume();
+            }
+            const testSynth = new Tone.Synth().toDestination();
+            testSynth.triggerAttackRelease("C5", "8n");
+            testSynth.triggerAttackRelease("G5", "8n", "+0.2");
+        }
+
+        /**
          * This function is called reliably by setTimeout when the timer duration has elapsed.
          */
         function onTimerEnd() {
@@ -477,7 +490,7 @@
         });
         testSoundBtn.addEventListener('click', () => {
             Tone.start();
-            playSound();
+            playTestSound();
         });
 
         // Keyboard shortcut for spacebar to start/pause.
