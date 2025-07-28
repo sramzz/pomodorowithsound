@@ -10,6 +10,7 @@ const jsonOutput = document.getElementById('jsonOutput');
 const completionModal = document.getElementById('completionModal');
 const closeModalBtn = document.getElementById('closeModalBtn');
 const testSoundBtn = document.getElementById('testSoundBtn');
+const clearAllBtn = document.getElementById('clearAllBtn');
 
 // Timer State
 let targetTime; // The exact timestamp when the timer should end
@@ -362,6 +363,17 @@ function deleteSession(event) {
     saveSessions();
 }
 
+/**
+ * Clears all sessions from the log.
+ */
+function clearAllSessions() {
+    if (confirm('Are you sure you want to delete all session logs?')) {
+        sessions = [];
+        updateSessionLog();
+        saveSessions();
+    }
+}
+
 // --- EVENT LISTENERS ---
 startBtn.addEventListener('click', startTimer);
 resetBtn.addEventListener('click', () => {
@@ -384,6 +396,7 @@ testSoundBtn.addEventListener('click', () => {
     Tone.start();
     playTestSound();
 });
+clearAllBtn.addEventListener('click', clearAllSessions);
 
 // Keyboard shortcut for spacebar to start/pause.
 document.addEventListener('keydown', (e) => {
