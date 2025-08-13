@@ -333,8 +333,9 @@ function updateSessionLog() {
     sessions.forEach((session, index) => {
         const row = document.createElement('tr');
         row.className = 'bg-white border-b';
+        // Added a 'goal-cell' class and data-index for editing functionality
         row.innerHTML = `
-            <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">${session.goal}</td>
+            <td class="goal-cell px-6 py-4 font-medium text-gray-900 whitespace-nowrap cursor-pointer" data-index="${index}">${session.goal}</td>
             <td class="px-6 py-4">${formatDate(session.startTime)}</td>
             <td class="px-6 py-4">${session.endTime ? formatDate(session.endTime) : 'In progress'}</td>
             <td class="px-6 py-4">${formatDuration(session.duration)}</td>
@@ -347,9 +348,80 @@ function updateSessionLog() {
     });
     jsonOutput.value = JSON.stringify(sessions, null, 2);
 
+    // Add event listeners for delete buttons
     document.querySelectorAll('.deleteBtn').forEach(btn => {
         btn.addEventListener('click', deleteSession);
     });
+
+    // Add event listeners for goal cells to make them editable
+    document.querySelectorAll('.goal-cell').forEach(cell => {
+        cell.addEventListener('click', handleGoalClick, { once: true });
+    });
+}
+
+/**
+ * Handles the click on a goal cell to make it editable.
+ * @param {Event} event - The click event.
+ */
+function handleGoalClick(event) {
+    const cell = event.currentTarget;
+    const index = parseInt(cell.dataset.index, 10);
+    const originalGoal = sessions[index].goal;
+
+    // Prevent editing if another edit is in progress
+    const existingInput = document.querySelector('.goal-edit-input');
+    if (existingInput) {
+        // Re-attach listener to the currently clicked cell in case the user wants to try again later
+        cell.addEventListener('click', handleGoalClick, { once: true });
+        return;
+    }
+
+    // Replace cell content with an input field and save/cancel buttons
+    cell.innerHTML = `
+        <div class="flex items-center gap-2">
+            <input type="text" class="goal-edit-input flex-grow bg-slate-100 rounded px-2 py-1 border border-blue-400" value="${originalGoal}">
+            <button class="save-goal-btn text-emerald-500 hover:text-emerald-700" title="Save">✔️</button>
+            <button class="cancel-edit-btn text-red-500 hover:text-red-700" title="Cancel">❌</button>
+        </div>
+    `;
+
+    const input = cell.querySelector('.goal-edit-input');
+    const saveBtn = cell.querySelector('.save-goal-btn');
+    const cancelBtn = cell.querySelector('.cancel-edit-btn');
+
+    input.focus();
+    input.select();
+
+    // --- Event Handlers for Save/Cancel ---
+
+    const save = () => {
+        const newGoal = input.value.trim();
+        // Validation: only save if the new goal is not empty
+        if (newGoal) {
+            sessions[index].goal = newGoal;
+            saveSessions();
+        }
+        // Always re-render the log, either with the new goal or to cancel the edit
+        updateSessionLog();
+    };
+
+    const cancel = () => {
+        updateSessionLog();
+    };
+
+    // Keyboard events
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // Prevent form submission if it's in a form
+            save();
+        } else if (e.key === 'Escape') {
+            cancel();
+        }
+    });
+
+    // Button clicks
+    saveBtn.addEventListener('click', save);
+    cancelBtn.addEventListener('click', cancel);
 }
 
 /**
