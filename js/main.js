@@ -269,7 +269,6 @@ function resetTimer() {
     clearTimeout(timeoutId);
     cancelAnimationFrame(animationFrameId);
 
-    duration = parseInt(durationSelect.value) * 60;
     timeLeft = duration;
     updateDisplay();
 
@@ -324,6 +323,36 @@ function endSession(isFinished = false) {
          goalInput.disabled = false;
      }
 }
+
+/**
+ * Parses the user-edited time from the timer display and updates the state.
+ * @param {Event} e - The blur event from the contenteditable timer div.
+ */
+function handleTimeEdit(e) {
+    if (isRunning) {
+        updateDisplay();
+        return;
+    }
+
+    const newTime = e.target.textContent;
+    const timeParts = newTime.match(/^(\d+):([0-5]?\d)$/);
+
+    if (timeParts) {
+        const minutes = parseInt(timeParts[1], 10);
+        const seconds = parseInt(timeParts[2], 10);
+        const newTotalSeconds = (minutes * 60) + seconds;
+
+        if (newTotalSeconds > 0) {
+            timeLeft = newTotalSeconds;
+            duration = newTotalSeconds;
+            // Deselect the dropdown to avoid confusion
+            durationSelect.selectedIndex = -1;
+        }
+    }
+    // If input is invalid, revert to the last valid time by re-running updateDisplay
+    updateDisplay();
+}
+
 
 /**
  * Renders the session data into the log table.
@@ -447,6 +476,18 @@ function clearAllSessions() {
 }
 
 // --- EVENT LISTENERS ---
+timerDisplay.addEventListener('blur', handleTimeEdit);
+timerDisplay.addEventListener('keydown', (e) => {
+    // When the user presses Enter, treat it as a "blur" to save the time.
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        e.target.blur();
+    }
+    // Prevent newline characters from being inserted.
+    if (e.key === 'Enter' && e.shiftKey) {
+        e.preventDefault();
+    }
+});
 startBtn.addEventListener('click', startTimer);
 resetBtn.addEventListener('click', () => {
      if (currentSession) endSession();
