@@ -269,7 +269,6 @@ function resetTimer() {
     clearTimeout(timeoutId);
     cancelAnimationFrame(animationFrameId);
 
-    duration = parseInt(durationSelect.value) * 60;
     timeLeft = duration;
     updateDisplay();
 
