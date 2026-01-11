@@ -3,7 +3,7 @@ const timerDisplay = document.getElementById('timer');
 const startBtn = document.getElementById('startBtn');
 const resetBtn = document.getElementById('resetBtn');
 const endBtn = document.getElementById('endBtn');
-const durationInput = document.getElementById('durationInput');
+const durationSelect = document.getElementById('durationSelect');
 const goalInput = document.getElementById('goalInput');
 const sessionLogBody = document.getElementById('sessionLogBody');
 const jsonOutput = document.getElementById('jsonOutput');
@@ -228,7 +228,7 @@ function startTimer() {
         startBtn.textContent = 'Pause';
         startBtn.classList.replace('bg-emerald-500', 'bg-orange-500');
         startBtn.classList.replace('hover:bg-emerald-600', 'hover:bg-orange-600');
-        durationInput.disabled = true;
+        durationSelect.disabled = true;
         goalInput.disabled = true;
 
         if (!currentSession) {
@@ -269,14 +269,14 @@ function resetTimer() {
     clearTimeout(timeoutId);
     cancelAnimationFrame(animationFrameId);
 
-    duration = parseInt(durationInput.value || 25, 10) * 60;
+    duration = parseInt(durationSelect.value) * 60;
     timeLeft = duration;
     updateDisplay();
 
     startBtn.textContent = 'Start';
     startBtn.classList.replace('bg-orange-500', 'bg-emerald-500');
     startBtn.classList.replace('hover:bg-orange-600', 'hover:bg-emerald-600');
-    durationInput.disabled = false;
+    durationSelect.disabled = false;
     goalInput.disabled = false;
     goalInput.value = '';
     currentSession = null;
@@ -287,7 +287,7 @@ function resetTimer() {
  */
 function changeDuration() {
     if (!isRunning) {
-        duration = parseInt(durationInput.value || 25, 10) * 60;
+        duration = parseInt(durationSelect.value) * 60;
         timeLeft = duration;
         updateDisplay();
     }
@@ -324,6 +324,34 @@ function endSession(isFinished = false) {
          goalInput.disabled = false;
      }
 }
+
+/**
+ * Parses the user-edited time from the timer display and updates the state.
+ * @param {Event} e - The blur event from the contenteditable timer div.
+ */
+function handleTimeEdit(e) {
+    if (isRunning) {
+        updateDisplay();
+        return;
+    }
+
+    const newTime = e.target.textContent;
+    const timeParts = newTime.match(/^(\d+):([0-5]?\d)$/);
+
+    if (timeParts) {
+        const minutes = parseInt(timeParts[1], 10);
+        const seconds = parseInt(timeParts[2], 10);
+        const newTotalSeconds = (minutes * 60) + seconds;
+
+        if (newTotalSeconds > 0) {
+            timeLeft = newTotalSeconds;
+            duration = newTotalSeconds;
+        }
+    }
+    // If input is invalid, revert to the last valid time by re-running updateDisplay
+    updateDisplay();
+}
+
 
 /**
  * Renders the session data into the log table.
@@ -447,13 +475,25 @@ function clearAllSessions() {
 }
 
 // --- EVENT LISTENERS ---
+timerDisplay.addEventListener('blur', handleTimeEdit);
+timerDisplay.addEventListener('keydown', (e) => {
+    // When the user presses Enter, treat it as a "blur" to save the time.
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        e.target.blur();
+    }
+    // Prevent newline characters from being inserted.
+    if (e.key === 'Enter' && e.shiftKey) {
+        e.preventDefault();
+    }
+});
 startBtn.addEventListener('click', startTimer);
 resetBtn.addEventListener('click', () => {
      if (currentSession) endSession();
      resetTimer();
 });
 endBtn.addEventListener('click', () => endSession());
-durationInput.addEventListener('input', changeDuration);
+durationSelect.addEventListener('change', changeDuration);
 closeModalBtn.addEventListener('click', () => {
     completionModal.classList.remove('visible');
     // Stop the sound and dispose of the synth
