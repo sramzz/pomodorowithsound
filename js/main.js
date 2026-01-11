@@ -345,6 +345,8 @@ function handleTimeEdit(e) {
         if (newTotalSeconds > 0) {
             timeLeft = newTotalSeconds;
             duration = newTotalSeconds;
+            // Deselect the dropdown to avoid confusion
+            durationSelect.selectedIndex = -1;
         }
     }
     // If input is invalid, revert to the last valid time by re-running updateDisplay
