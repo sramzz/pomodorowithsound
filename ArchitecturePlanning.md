@@ -90,7 +90,9 @@ Tauri Desktop App
 │       └── live state: LOCAL only               completion state
 ├── day view + Start Day button                UI calls Core actions, never writes DB directly
 ├── local import / export
-└── Sync client in LOCAL-ONLY mode             PowerSync installed, not connected yet
+└── Sync seam stub in Core (Rust)              no-op SyncService trait; PowerSync integration
+                                                deferred to M3 — no JS SDK (it would create a
+                                                second SQLite and bypass the Core)
 
 M2 — Local agent surface   (transports over the SAME Core; still no server)
 ├── Local CLI                    → calls Core actions
@@ -203,7 +205,8 @@ caller gets it for free.*
   eligible microtasks (deadlines, priorities, pomodoro counts × type length, rest) + the
   day's meetings → a **draft** plan. (Also the LLM's main door later: it proposes, the
   planner validates and persists.)
-- `addWorkBlock(id, planId, microtaskId, start, end)`
+- `addWorkBlock(id, planId, blockType, microtaskId?, start, end)` — `microtaskId` required iff
+  `blockType = task`; `blockType = meeting` is the manual meeting entry path until M4
 - `moveWorkBlock(id, newStart, newEnd?)`  *(reschedule)*
 - `removeWorkBlock(id)`
 - `reorderWorkBlocks(planId, orderedWorkBlockIds[])`
@@ -216,7 +219,7 @@ durable and sync; the *live state* does not.
 - `pauseDay()` · `resumeDay()`
 - `completeCurrentBlock()` — mark running microtask done, record a PomodoroSession, advance
 - `skipToNextBlock()`
-- `startBreak()` · `skipBreak()`
+- `skipBreak()`  *(breaks auto-start when a work block ends; no manual `startBreak`)*
 - `endDay()` — finalize; write FocusSession + remaining PomodoroSessions (these sync)
 
 ### Focus / app-blocking adapter (the seam)

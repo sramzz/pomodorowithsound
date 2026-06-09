@@ -8,8 +8,8 @@
 - **Backend (Tauri Core):** Rust with the Domain Core exposed via Tauri IPC commands
 - **Database:** SQLite via SQLx (async, compile-time checked queries, and migrations)
 - **Styling:** Vanilla CSS + Inter font
-- **Audio:** Native system notifications and audio playback via Tauri plugins / native commands (no external Web Audio CDN dependencies)
-- **Sync Stub:** PowerSync client installed in local-only offline mode
+- **Audio:** Sounds synthesized in Rust via `rodio` (SineWave sources, no bundled assets); system notifications via the official `tauri-plugin-notification`, called from Rust. Both triggers originate in the Rust runtime engine — routing them through the webview would reintroduce the OS-throttling problem the Rust timer exists to avoid.
+- **Sync Stub:** a Rust-side sync seam — a no-op `SyncService` trait inside the Domain Core. The schema stays sync-ready (client-generated UUIDs, `updated_at` on every table, no AUTOINCREMENT). Explicitly **no PowerSync JS SDK**: it manages its own SQLite, which would create a second database in the webview and bypass the Core's single write path. ADR for M3: either load the PowerSync core extension into the SQLx connection, or adopt a PowerSync Rust client SDK if one has matured.
 
 **Architecture Layers:**
 ```
@@ -115,10 +115,10 @@ CREATE TABLE pomodoro_types (
     updated_at TEXT NOT NULL
 );
 
--- Plans (a day plan)
+-- Plans (a day plan; exactly one per date — regenerating replaces the draft)
 CREATE TABLE plans (
     id TEXT PRIMARY KEY,
-    date TEXT NOT NULL,                  -- YYYY-MM-DD
+    date TEXT NOT NULL UNIQUE,           -- YYYY-MM-DD, one plan per date
     status TEXT NOT NULL DEFAULT 'draft', -- draft | committed
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
@@ -164,7 +164,18 @@ CREATE TABLE pomodoro_sessions (
     was_completed INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL
 );
+
+-- App settings (key-value): planning window, audio volume, notification toggles
+CREATE TABLE settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
 ```
+
+### Seed Data
+
+A seed migration inserts the default PomodoroType **"Standard"** (`work_minutes = 20`, `rest_minutes = 5`, `is_default = 1`). If a microtask names no type, the default type applies; if no default type is configured, the planner falls back to 20 minutes of work.
 
 ### Runtime State (In-Memory Only)
 
@@ -191,19 +202,24 @@ pub enum RuntimeMode {
 
 All mutations are handled by Rust backend IPC commands:
 
-### CRUD Commands
-* `create_project(id, name, description)`
-* `update_project(id, name, description, status)`
-* `delete_project(id)`
-* `create_goal(id, project_id, title, description, deadline, priority)`
-* `update_goal(id, title, description, deadline, priority, status)`
-* `delete_goal(id)`
-* `create_task(id, goal_id, title, description, deadline, priority)`
-* `update_task(id, title, description, deadline, priority, status)`
-* `delete_task(id)`
-* `create_microtask(id, task_id, title, estimated_minutes, pomodoro_count, pomodoro_type_id, deadline, priority)`
-* `update_microtask(id, title, estimated_minutes, pomodoro_count, pomodoro_type_id, deadline, priority, status)`
-* `delete_microtask(id)`
+### Structure Commands
+`update_*` commands take no `status` parameter — status changes flow only through the complete/uncomplete commands and the roll-up rule, never through direct writes.
+
+* `create_project(id, name, description?)`
+* `update_project(id, name?, description?)`
+* `archive_project(id)` · `delete_project(id)`
+* `create_goal(id, project_id, title, description?, deadline?, priority?)`
+* `update_goal(id, title?, description?, deadline?, priority?)`
+* `archive_goal(id)` · `delete_goal(id)`
+* `create_task(id, goal_id, title, description?, deadline?, priority?)`
+* `update_task(id, title?, description?, deadline?, priority?)`
+* `archive_task(id)` · `delete_task(id)`
+* `create_microtask(id, task_id, title, estimated_minutes, pomodoro_count, pomodoro_type_id?, deadline?, priority?)`
+* `update_microtask(id, title?, estimated_minutes?, pomodoro_count?, pomodoro_type_id?, deadline?, priority?)`
+* `complete_microtask(id)` · `uncomplete_microtask(id)`
+* `archive_microtask(id)` · `delete_microtask(id)`
+
+**Roll-up rule (lives in the Core, every caller gets it for free):** completing the last open microtask of a task completes the task — inside one transaction — which may in turn complete the goal when its last task completes. `uncomplete_microtask` reverses the roll-up. Estimates and pomodoro counts roll up for display.
 
 ### Ranking & Ordering
 * `reorder_goals(project_id, ordered_ids)`
@@ -211,10 +227,34 @@ All mutations are handled by Rust backend IPC commands:
 * `reorder_microtasks(task_id, ordered_ids)`
 
 ### Pomodoro Presets
-* `create_pomodoro_type(id, name, work_minutes, rest_minutes, long_break_minutes, long_break_every)`
-* `update_pomodoro_type(id, name, work_minutes, rest_minutes, long_break_minutes, long_break_every)`
+* `create_pomodoro_type(id, name, work_minutes, rest_minutes, long_break_minutes?, long_break_every?)`
+* `update_pomodoro_type(id, name?, work_minutes?, rest_minutes?, long_break_minutes?, long_break_every?)`
 * `delete_pomodoro_type(id)`
 * `set_default_pomodoro_type(id)`
+
+### Planning Commands
+* `generate_day_plan(plan_id, date, strategy?)` — runs the deterministic planner, producing a **draft** plan; regenerating for the same date replaces the existing draft (one plan per date).
+* `add_work_block(id, plan_id, block_type, microtask_id?, start, end)` — `microtask_id` is required iff `block_type = 'task'`. `block_type = 'meeting'` is how users add meetings manually in M1 (calendar import arrives in M4); the planner schedules around them.
+* `move_work_block(id, new_start, new_end?)` — reschedule.
+* `remove_work_block(id)`
+* `reorder_work_blocks(plan_id, ordered_ids)`
+* `commit_day_plan(plan_id)` · `clear_day_plan(plan_id)`
+
+### Day-Running Commands (desktop-local runtime)
+Breaks auto-advance when a work block ends; there is no `start_break` — `skip_break` covers the manual case.
+* `start_day(plan_id)`
+* `pause_day()` · `resume_day()`
+* `complete_current_block()`
+* `skip_to_next_block()`
+* `skip_break()`
+* `end_day()`
+
+### Focus Mode Adapter
+* `start_focus_mode(context?)` · `stop_focus_mode()` — M1: no-op stubs that log (see Section 4).
+
+### Import / Export
+* `export_data()` — writes a versioned single-file JSON dump of all tables, taken from one consistent read snapshot; file picked via the Tauri dialog plugin.
+* `import_data(path)` — validates the version field and restores inside one transaction, inserting parents before children.
 
 ---
 
@@ -229,7 +269,9 @@ The planner generates a schedule for a specific `date` (e.g. `2026-06-09`) withi
    - Place meetings/calendar events first at their fixed start/end times.
    - Fill the remaining gaps sequentially with work blocks and rest breaks for the high-priority microtasks.
    - A microtask with $N$ pomodoros is broken down into $N$ separate work blocks, each followed by a break block based on its `PomodoroType` preset.
+   - **Long-break rule:** when a microtask's type defines `long_break_every = N`, every Nth consecutive work block of that type gets a break of `long_break_minutes` instead of `rest_minutes`.
    - If a work/break pair cannot fit in a gap, it is scheduled for the next available gap.
+   - The planner is a pure function `fn plan(inputs, window, now) -> Vec<BlockSpec>` with persistence kept outside it — this keeps it unit-testable and makes it the LLM's validation door later. The planning window defaults to 09:00–17:00, read from the `settings` table.
 3. **Draft State:** The planner saves the output as `WorkBlock`s with a `Plan` in `draft` status.
 4. **Modifications:** The user can add, remove, and reorder work blocks, which updates the database.
 5. **Commit:** `commit_day_plan(plan_id)` seals the plan and makes it ready for execution.
@@ -238,6 +280,9 @@ The planner generates a schedule for a specific `date` (e.g. `2026-06-09`) withi
 The Start Day runtime is an in-memory engine running in the Rust backend.
 - It operates using a background `tokio` task that ticks every 1 second, updating `RuntimeState` and emitting a `runtime-tick` event to the webview.
 - **Why in Rust?** Prevents OS throttling of JavaScript timers when the Tauri webview is minimized or in the background.
+- **Concurrency model:** the actor pattern, not a shared `Mutex`. One tokio task owns `RuntimeState` exclusively; IPC commands send messages via an `mpsc::Sender<RuntimeCmd>` held in Tauri managed state. The task selects over the command channel and a 1-second `tokio::time::interval`, emitting `runtime-tick` through a captured `AppHandle`. Serializing all transitions through one task eliminates the race between a timer expiry and a simultaneous user command.
+- **Block-completion semantics:** each completed work block records a `PomodoroSession` **immediately** (incremental writes, not batched at `end_day`). A microtask with N pomodoros completes only when its last block completes; a "finish microtask early" affordance skips its remaining blocks.
+- **Crash semantics:** live runtime state is in-memory and lost on crash — accepted for M1. The plan stays `committed`, and PomodoroSessions already written survive.
 
 ```mermaid
 stateDiagram-v2
@@ -279,12 +324,15 @@ Rust command API:
 
 ## 5. Queries (Read API)
 
-Reads can query the SQLite database directly or go through the Rust read-only commands:
+All reads are Rust read-only IPC commands — the webview cannot reach the Rust-owned SQLite database, and no second access path (e.g. `tauri-plugin-sql`) may be added.
 * `list_projects(include_archived: bool)` -> Returns projects with goal/task/microtask completion roll-up stats.
 * `get_project_tree(project_id: String)` -> Returns full nested tree: Project → Goals → Tasks → Microtasks.
-* `get_day_plan(date: String)` -> Returns the plan and ordered work blocks for the given date.
+* `get_microtask(id: String)` -> Returns a single microtask.
+* `get_day_plan(date: String)` -> Returns the date's plan (regardless of status) and its ordered work blocks.
+* `get_today(date?: String)` -> Returns the **committed** plan, blocks, and meetings for the day (defaults to today).
 * `get_run_status()` -> Returns the active `RuntimeState` of the Start Day engine.
 * `get_stats(start_date: String, end_date: String)` -> Aggregates focus session logs and completed pomodoros.
+* `get_settings()` -> Returns the settings key-value map.
 
 ---
 
