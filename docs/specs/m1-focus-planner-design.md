@@ -8,6 +8,7 @@
 - **Backend (Tauri Core):** Rust with the Domain Core exposed via Tauri IPC commands
 - **Database:** SQLite via SQLx (async, compile-time checked queries, and migrations)
 - **Styling:** Vanilla CSS + Inter font
+- **Logging:** `tracing` + `tracing-subscriber` + `tracing-appender` in Rust — see Section 7 (Observability). Logging is non-negotiable per PHILOSOPHY.md.
 - **Audio:** Sounds synthesized in Rust via `rodio` (SineWave sources, no bundled assets); system notifications via the official `tauri-plugin-notification`, called from Rust. Both triggers originate in the Rust runtime engine — routing them through the webview would reintroduce the OS-throttling problem the Rust timer exists to avoid.
 - **Sync Stub:** a Rust-side sync seam — a no-op `SyncService` trait inside the Domain Core. The schema stays sync-ready (client-generated UUIDs, `updated_at` on every table, no AUTOINCREMENT). Explicitly **no PowerSync JS SDK**: it manages its own SQLite, which would create a second database in the webview and bypass the Core's single write path. ADR for M3: either load the PowerSync core extension into the SQLx connection, or adopt a PowerSync Rust client SDK if one has matured.
 
@@ -200,7 +201,9 @@ pub enum RuntimeMode {
 
 ## 3. Domain Core Commands (Mutations API)
 
-All mutations are handled by Rust backend IPC commands:
+All mutations are handled by Rust backend IPC commands.
+
+**Command-Query Separation (per PHILOSOPHY.md):** commands change state and return only success or a typed error — never data. The UI refreshes by calling the queries in Section 5. Queries never change state.
 
 ### Structure Commands
 `update_*` commands take no `status` parameter — status changes flow only through the complete/uncomplete commands and the roll-up rule, never through direct writes.
@@ -251,6 +254,10 @@ Breaks auto-advance when a work block ends; there is no `start_break` — `skip_
 
 ### Focus Mode Adapter
 * `start_focus_mode(context?)` · `stop_focus_mode()` — M1: no-op stubs that log (see Section 4).
+
+### Settings
+* `update_setting(key, value)` — validates against the known-keys registry (planning window, audio, notification settings); unknown keys and out-of-range values are Validation errors.
+* `play_test_sound()` — plays the work-end chime at the configured volume (an effect command, returns no data).
 
 ### Import / Export
 * `export_data()` — writes a versioned single-file JSON dump of all tables, taken from one consistent read snapshot; file picked via the Tauri dialog plugin.
@@ -381,5 +388,34 @@ The UI is built with Vue 3 using Vanilla CSS for clean, premium styling (dark mo
   - `initListener()` -> Establishes subscription to Tauri `runtime-tick` events. Updates store state on every tick.
   - `startDay(planId)` -> calls `start_day`.
   - `pauseDay() / resumeDay() / completeBlock() / endDay() / skipBlock()` -> invokes respective backend commands.
+
+---
+
+## 7. Observability & Logging
+
+**The bar (PHILOSOPHY.md):** a junior dev with zero project context must be able to follow a full app run — startup, a backlog edit, a plan generation, a complete Start Day run — from the logs alone.
+
+### Infrastructure
+- Rust uses the `tracing` ecosystem. `tracing-subscriber` installs two layers at startup:
+  1. **Console layer** — pretty, colored, for the dev terminal.
+  2. **File layer** — `tracing-appender` daily-rolling file written to the **exposed Logs folder**: `logs/` at the repo root in dev (gitignored, `.gitkeep` committed), the app-data directory in packaged builds. Plain text, human-readable: `timestamp level target message {structured fields}`.
+- Log level via `RUST_LOG` env var; default `info` (file) / `debug` (console in dev).
+
+### What gets logged (rules, enforced from Phase 1 on)
+| Source | Level | Content |
+|--------|-------|---------|
+| Every Core command | INFO | entry: command name + key params (ids, names — never full payloads); exit: `ok` or the error |
+| Validation failures | WARN | which rule rejected what input |
+| Errors | ERROR | full error + context (what was being attempted) |
+| Roll-up rule | INFO | "microtask X completed → task Y completed → goal Z completed" chain |
+| Planner | DEBUG | input summary (N microtasks, window, M meetings) and each placement decision ("block placed 09:00–09:20 in gap …", "pair didn't fit, moved to next gap") |
+| Runtime engine | INFO | every state transition (`Idle → WorkRunning`, `WorkRunning → BreakRunning` …), block start/complete/skip, sound + notification fired |
+| Runtime tick | TRACE | per-second tick (off by default — noise) |
+| DB | INFO | migrations applied, DB path on startup |
+| Frontend | — | a `log_frontend(level, message, context)` IPC command forwards webview errors and store-action failures into the same log file, tagged `target=frontend` |
+
+### Conventions
+- Commands log through a single instrumentation pattern (`#[tracing::instrument]` on command handlers with `skip`-ed payloads and explicit fields) so the format stays uniform — no ad-hoc `println!`.
+- One run of the Start Day engine must read as a coherent narrative in the file log: started → each block transition with timestamps → sessions written → day ended.
 
 

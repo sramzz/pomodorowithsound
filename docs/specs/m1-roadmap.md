@@ -2,13 +2,41 @@
 
 M1 (the standalone desktop app) is too large to plan and build as one feature. It is broken
 into **6 sequential phases**. Each phase ends with working, manually-testable software: the
-app launches and the phase's surface is usable end-to-end. Each phase gets its own detailed
-implementation plan, written **just-in-time** when the prior phase ships — earlier phases
-teach us things later plans should inherit.
+app launches and the phase's surface is usable end-to-end. All six phase plans are written
+**upfront** (decided 2026-06-09) so the team can execute them in sequence and arrive at the
+first running version; when an earlier phase teaches us something, the later plans get
+amended and the lesson recorded in `docs/lessons/`.
 
 Source documents:
+- `PHILOSOPHY.md` — how we work; every spec and plan aligns with it.
 - `ArchitecturePlanning.md` — authoritative command vocabulary (Section 4 is the contract).
-- `docs/specs/m1-focus-planner-design.md` — schema, planner algorithm, runtime state machine.
+- `docs/specs/m1-focus-planner-design.md` — schema, planner algorithm, runtime state machine, observability rules (§7).
+
+---
+
+## Philosophy alignment (PHILOSOPHY.md)
+
+This project is explicitly on the **Full path**: TDD, formal specs and plans, layered
+modeling, schema-change management via SQLx migrations.
+
+- **Logging is non-negotiable.** Spec §7 defines the rules. Phase 1 builds the
+  infrastructure (tracing + exposed `logs/` folder); every later phase has explicit logging
+  deliverables, and a phase is not done until its flow reads as a narrative in the log file.
+- **TDD with intent.** Tests first, designed deliberately — they encode what the code is
+  for. The role split below concentrates test design in the most capable agent.
+- **KISS / POLA / AHA.** No router for a 4-view sidebar, no chart library for CSS bars, no
+  premature abstractions across the Core services — duplication beats the wrong abstraction.
+- **Command-Query Separation.** Commands mutate and return only success/error; queries
+  return data and never mutate. Enforced in the IPC layer from Phase 1.
+- **Idempotency-ready.** Client-generated entity ids, absolute updates, full-list reorders —
+  the M2+ idempotency keys bolt onto these conventions without rework.
+- **Lessons folder.** `docs/lessons/` — every mistake or failed experiment during the build
+  becomes a markdown entry. We pay for a lesson once.
+- **README for newcomers.** Each phase ends by updating `README.md` so any reader grasps the
+  current state in five minutes.
+- **Database context folder.** `docs/db-context/` — schema for-dummies, structural
+  decisions, migration history. Created in Phase 1, kept current by every phase that touches
+  the schema.
 
 ---
 
@@ -78,7 +106,7 @@ Source documents:
 
 ## Planning conventions (apply to every phase plan)
 
-1. **One plan per phase, just-in-time.** Written with the superpowers `writing-plans` skill, saved to `docs/superpowers/plans/YYYY-MM-DD-m1-phase-N-<name>.md`, only after the prior phase has shipped.
+1. **One plan per phase, all written upfront.** Written with the superpowers `writing-plans` skill, saved to `docs/superpowers/plans/YYYY-MM-DD-m1-phase-N-<name>.md`. Later plans inherit Phase 1's conventions (AppError, IPC wrapper, logging patterns); if execution of a phase invalidates part of a later plan, amend the plan and record the lesson in `docs/lessons/`.
 2. **Difficulty tags.** Every task in a plan carries a tag: `[trivial]`, `[easy]`, `[medium]`, or `[hard]`.
 3. **Small tasks.** Break work down as far as feasible — each step is one 2–5 minute action.
 4. **TDD role split.** The most capable agent always designs the failing test for each task first. Implementation is then assigned by difficulty (cheaper/faster agents may take `[trivial]`/`[easy]` tasks). Every task is reviewed before its commit lands.
