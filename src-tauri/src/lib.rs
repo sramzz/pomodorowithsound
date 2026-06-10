@@ -14,6 +14,10 @@ pub fn run() {
         .setup(|app| {
             let guard = logging::init(app.handle());
             app.manage(guard);
+            let handle = app.handle().clone();
+            let pool = tauri::async_runtime::block_on(db::init(&handle))
+                .expect("database initialization failed");
+            app.manage(db::Db(pool));
             Ok(())
         })
         .run(tauri::generate_context!())
