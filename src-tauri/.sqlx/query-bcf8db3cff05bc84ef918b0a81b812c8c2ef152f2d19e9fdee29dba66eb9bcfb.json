@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT name, work_minutes, rest_minutes, is_default FROM pomodoro_types",
+  "describe": {
+    "columns": [
+      {
+        "name": "name",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "work_minutes",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "rest_minutes",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "is_default",
+        "ordinal": 3,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "bcf8db3cff05bc84ef918b0a81b812c8c2ef152f2d19e9fdee29dba66eb9bcfb"
+}

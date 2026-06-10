@@ -11,6 +11,10 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .invoke_handler(tauri::generate_handler![
+            commands::project::list_projects,
+            commands::frontend_log::log_frontend,
+        ])
         .setup(|app| {
             let guard = logging::init(app.handle());
             app.manage(guard);
