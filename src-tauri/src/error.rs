@@ -1,5 +1,6 @@
 use serde::Serialize;
 
+// NotFound/Validation variants are used from Phase 2 onward; allow until then.
 #[allow(dead_code)]
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {

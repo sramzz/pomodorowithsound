@@ -51,4 +51,6 @@ body { margin: 0; background: #111418; color: #e6e9ef; }
 .sidebar button:hover { background: #181d24; color: #e6e9ef; }
 .sidebar button.active { background: #1f2630; color: #fff; }
 .content { flex: 1; padding: 24px; overflow-y: auto; }
+.placeholder { color: #6b7280; }
+.error { color: #f87171; }
 </style>

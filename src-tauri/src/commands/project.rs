@@ -9,6 +9,8 @@ pub async fn list_projects(
     db: tauri::State<'_, Db>,
     include_archived: bool,
 ) -> Result<Vec<Project>, AppError> {
+    // Command template every later phase copies: thin wrapper over the Core
+    // service that logs the outcome (the #[instrument] span already records args).
     let result = project_service::list_projects(&db.0, include_archived).await;
     match &result {
         Ok(p) => tracing::info!(count = p.len(), "ok"),

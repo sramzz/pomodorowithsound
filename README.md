@@ -4,7 +4,7 @@ Focus Planner is a native desktop application for Pomodoro-based day planning. B
 
 ## Current State
 
-**Phase 1 (scaffold) is complete.** The skeleton is in place: Tauri scaffold, structured Rust logging to rolling files, SQLite schema (10 tables, 2 migrations), a `list_projects` vertical slice from DB to frontend, 4 Rust unit tests + 2 Vitest tests, and CI. The legacy vanilla-JS prototype lives in `legacy/` for reference.
+**Phase 1 (scaffold) is complete.** The skeleton is in place: Tauri scaffold, structured Rust logging to rolling files, SQLite schema (10 tables, 2 migrations), a `list_projects` vertical slice from DB to frontend, 4 Rust integration tests + 2 Vitest tests, and CI. The legacy vanilla-JS prototype lives in `legacy/` for reference.
 
 Active development is tracked in `docs/superpowers/plans/`.
 
@@ -30,7 +30,7 @@ npm run tauri dev
 # Frontend (Vitest)
 npm test
 
-# Rust unit tests
+# Rust integration tests
 cargo test --manifest-path src-tauri/Cargo.toml
 
 # TypeScript typecheck
@@ -41,7 +41,7 @@ CI runs all three automatically on every push/PR (see `.github/workflows/ci.yml`
 
 ## Logs
 
-Structured logs are written to `logs/focus-planner.log.<date>` (daily rolling). The `logs/` directory is gitignored; a `.gitkeep` keeps the folder tracked. Set `RUST_LOG` to control verbosity (default: `info` to file, `debug` to console in dev).
+Structured logs are written to `logs/focus-planner.log.<date>` (daily rolling). The `logs/` directory is gitignored; a `.gitkeep` keeps the folder tracked. Set `RUST_LOG` to control verbosity; both console and file layers share one level (default: `debug` in dev, `info` in release).
 
 ## Key Docs
 
