@@ -111,3 +111,13 @@ modeling, schema-change management via SQLx migrations.
 3. **Small tasks.** Break work down as far as feasible — each step is one 2–5 minute action.
 4. **TDD role split.** The most capable agent always designs the failing test for each task first. Implementation is then assigned by difficulty (cheaper/faster agents may take `[trivial]`/`[easy]` tasks). Every task is reviewed before its commit lands.
 5. **Branch strategy.** All M1 work happens on feature branches off `main`, merged via PR. `main` keeps the legacy vanilla app until Phase 1's PR lands (which moves it to `legacy/`).
+
+### Cross-agent effort mapping
+
+| Task difficulty | Codex | Claude Code |
+|---|---|---|
+| Trivial / Easy | GPT-5.5, low reasoning | Sonnet, low thinking |
+| Medium | GPT-5.5, medium reasoning | Sonnet, high thinking |
+| Difficult / Hard | GPT-5.5, high reasoning | Opus, medium thinking |
+
+`[hard]` task tags are equivalent to Difficult / Hard. Phase-wide reviews and broad architectural reviews also use the Difficult / Hard tier.

@@ -10,6 +10,16 @@
 
 **Conventions (per `docs/specs/m1-roadmap.md`):** every task carries a difficulty tag. The failing test of each TDD task is designed by the most capable agent; implementation may be assigned by difficulty; every task is reviewed before its commit lands. Scaffold/tooling tasks (1–3) are not TDD-able — they end with manual verification instead.
 
+**Cross-agent effort mapping:**
+
+| Task difficulty | Codex | Claude Code |
+|---|---|---|
+| Trivial / Easy | GPT-5.5, low reasoning | Sonnet, low thinking |
+| Medium | GPT-5.5, medium reasoning | Sonnet, high thinking |
+| Difficult / Hard | GPT-5.5, high reasoning | Opus, medium thinking |
+
+`[hard]` is equivalent to Difficult / Hard. Phase-wide and broad architectural reviews use this tier.
+
 **Philosophy (PHILOSOPHY.md):** CQS — commands mutate, queries read, never both. Logging per spec §7: a junior must follow the app from `logs/` alone. KISS — no router, no extra deps beyond the list above.
 
 ---

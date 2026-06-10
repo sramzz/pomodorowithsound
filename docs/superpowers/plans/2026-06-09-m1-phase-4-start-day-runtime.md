@@ -10,6 +10,16 @@
 
 **Conventions (per `docs/specs/m1-roadmap.md`):** every task carries a difficulty tag (`[trivial]`/`[easy]`/`[medium]`/`[hard]`). TDD role split: the failing test of each TDD task is **designed by the most capable agent**; implementation may be assigned by difficulty (cheaper agents take `[trivial]`/`[easy]`); **every task is reviewed before its commit lands**. The actor + state machine (Tasks 5–9) is the `[hard]` core — do not parallelize those five tasks; they build on each other in order.
 
+**Cross-agent effort mapping:**
+
+| Task difficulty | Codex | Claude Code |
+|---|---|---|
+| Trivial / Easy | GPT-5.5, low reasoning | Sonnet, low thinking |
+| Medium | GPT-5.5, medium reasoning | Sonnet, high thinking |
+| Difficult / Hard | GPT-5.5, high reasoning | Opus, medium thinking |
+
+`[hard]` is equivalent to Difficult / Hard. Phase-wide and broad architectural reviews use this tier.
+
 **Philosophy (PHILOSOPHY.md):** CQS — all runtime commands return `Result<(), AppError>`, only `get_run_status` returns data. Logging per spec §7 — this phase is the showcase: every state transition at INFO with from/to/block id/reason, every sound and notification fired at INFO, every session row written at INFO, per-second ticks at TRACE only. KISS — no extra crates beyond the list above, no persistence of live runtime state (crash semantics below).
 
 ---
@@ -2094,4 +2104,3 @@ Use a real committed plan with at least two short pomodoros (create a 2-minute t
 1. **Scope coverage:** all seven spec §3 Day-running commands (Tasks 5–7, 9) + focus-mode stubs (Task 9) + `get_run_status` (Tasks 5, 9); spec §4 state machine incl. actor pattern and biased select (Tasks 5–6), sound & notification rules with exact spec texts (Task 6), block-completion semantics with incremental writes (Task 6), crash semantics (decision 7, QA item); spec §6 timer header + controls + `useRuntimeStore` with `initListener` (Tasks 10–11). Sounds via rodio behind `SoundPlayer`, notifications via `tauri-plugin-notification` behind `Notifier`, ticks via `TickSink` — engine never imports Tauri.
 2. **Placeholder scan:** every type referenced is defined in a task (`RuntimeCmd` extended in Task 7 with the full enum repeated; `Recorder`, `Harness`, `ActiveRun`, `RunBlock` in Tasks 5–6); the single intentionally-open point (Phase 3's DayView property names, Task 11 Step 5) is flagged with the amend-plan convention rather than hidden.
 3. **Type consistency:** `RuntimeState` field names match spec §2 (with the flagged `Option<String>` deviation, decision 10); wire camelCase matches `RuntimeStateWire` in TS (Task 10 Step 1) and the serde test (Task 4); `AppError::Internal` (Task 3) matches the `"internal"` wire code Phase 6's plan also references; session columns match spec §2 `pomodoro_sessions`/`focus_sessions` exactly.
-

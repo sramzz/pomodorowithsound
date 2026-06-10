@@ -10,6 +10,16 @@
 
 **Conventions (per `docs/specs/m1-roadmap.md`):** every task carries a difficulty tag (`[trivial]`/`[easy]`/`[medium]`/`[hard]`). The failing test of each TDD task is designed by the most capable agent; implementation may be assigned by difficulty; every task is reviewed before its commit lands. UI-polish and packaging tasks are not unit-testable — they end with manual verification steps instead.
 
+**Cross-agent effort mapping:**
+
+| Task difficulty | Codex | Claude Code |
+|---|---|---|
+| Trivial / Easy | GPT-5.5, low reasoning | Sonnet, low thinking |
+| Medium | GPT-5.5, medium reasoning | Sonnet, high thinking |
+| Difficult / Hard | GPT-5.5, high reasoning | Opus, medium thinking |
+
+`[hard]` is equivalent to Difficult / Hard. Phase-wide and broad architectural reviews use this tier.
+
 **Philosophy (PHILOSOPHY.md):** CQS — `update_setting` and `play_test_sound` return `Result<(), AppError>`; `get_settings` returns data and never mutates. Logging per spec §7 — every settings read/change at INFO (`setting planning_window_start changed 09:00 -> 08:30`), validation rejections at WARN, `play_test_sound` at INFO; the QA checklist requires a settings session to be reconstructable from the log file alone. KISS — no settings framework, no theme system, a `&[SettingDef]` slice and `fn(&str)` validators.
 
 **Integration reality check:** Tasks 5 and 6 modify Phase 3 (`plan_service`/`generate_day_plan`) and Phase 4 (runtime engine, audio module) code that lands before this plan executes. The code below is written against the spec's stated shapes (pure planner fn taking a window; actor engine fed by `RuntimeCmd` over `mpsc`; rodio synth module). If landed names differ, adapt the call sites, **amend this plan, and record a `docs/lessons/` entry** per roadmap convention 1 — do not fork the conventions.

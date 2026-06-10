@@ -10,6 +10,16 @@
 
 **Conventions (per `docs/specs/m1-roadmap.md`):** every task carries a difficulty tag (`[trivial]` `[easy]` `[medium]` `[hard]`). The failing test of each TDD task is designed by the most capable agent; implementation may be assigned by difficulty; every task is reviewed before its commit lands. This plan builds on exactly what Phase 1 created: the `AppError` enum (`db` / `not_found` / `validation` wire codes), the `ipc<T>()` wrapper, the `#[tracing::instrument(skip(db))]` command pattern, services taking `&SqlitePool`, `sqlx::query_as!` macros with `cargo sqlx prepare` refreshes, `#[sqlx::test]` tests, mockIPC vitest tests, and serde camelCase models. The Rust lib is imported in tests as `focus_planner_lib` (verify against `[lib] name` in `src-tauri/Cargo.toml` and adjust `use` lines if Phase 1 ended up with a different name).
 
+**Cross-agent effort mapping:**
+
+| Task difficulty | Codex | Claude Code |
+|---|---|---|
+| Trivial / Easy | GPT-5.5, low reasoning | Sonnet, low thinking |
+| Medium | GPT-5.5, medium reasoning | Sonnet, high thinking |
+| Difficult / Hard | GPT-5.5, high reasoning | Opus, medium thinking |
+
+`[hard]` is equivalent to Difficult / Hard. Phase-wide and broad architectural reviews use this tier.
+
 **Philosophy (PHILOSOPHY.md):** Logging per spec §7 — every command logs INFO entry/exit through the instrument pattern, validation failures WARN, the roll-up chain logs at INFO as one narrative line. KISS/AHA — services are deliberately repetitive CRUD; duplication beats a premature "generic entity service". POLA — absolute-value updates, no PATCH semantics. Idempotency-ready — client-generated UUIDs, full-ordered-list reorders.
 
 **Loud flags (read before executing):**

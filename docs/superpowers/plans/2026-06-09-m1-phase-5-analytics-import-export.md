@@ -10,6 +10,16 @@
 
 **Conventions (per `docs/specs/m1-roadmap.md`):** every task carries a difficulty tag (`[trivial]`/`[easy]`/`[medium]`/`[hard]`). The failing test of each TDD task is designed by the most capable agent; implementation may be assigned by difficulty (cheaper agents take `[trivial]`/`[easy]`); every task is reviewed before its commit lands. Phase 1 conventions are inherited verbatim: `AppError` + `Result<T, AppError>` on every command, the `ipc<T>()` wrapper for every store call, `#[tracing::instrument]` on command handlers, services in `core/`, `#[sqlx::test]` for Rust, `mockIPC` for stores, `#[serde(rename_all = "camelCase")]` on IPC models.
 
+**Cross-agent effort mapping:**
+
+| Task difficulty | Codex | Claude Code |
+|---|---|---|
+| Trivial / Easy | GPT-5.5, low reasoning | Sonnet, low thinking |
+| Medium | GPT-5.5, medium reasoning | Sonnet, high thinking |
+| Difficult / Hard | GPT-5.5, high reasoning | Opus, medium thinking |
+
+`[hard]` is equivalent to Difficult / Hard. Phase-wide and broad architectural reviews use this tier.
+
 **Philosophy (PHILOSOPHY.md):**
 - **CQS:** `get_stats` is a query (returns data, mutates nothing). `export_data(path)` and `import_data(path)` are commands (mutate the filesystem/DB, return `Result<(), AppError>`, never data).
 - **POLA — say the destructive thing out loud:** M1 import is a **full restore**: it deletes *every existing row* (including the seeded Standard pomodoro type) before inserting the file's rows. The UI confirm dialog must say "replaces ALL current data". This is repeated at every layer of this plan on purpose.
@@ -2058,6 +2068,5 @@ Run the app (`npm run tauri dev`) and walk the demonstrable end-to-end:
 1. **Scope coverage:** roadmap Phase 5 row + spec §3 Import/Export, §5 `get_stats`, §6 Analytics view, §7 logging — `get_stats` shape defined (Task 1), SQL-side aggregation (Task 1), Analytics view with presets/totals/CSS bars/per-project/empty state (Tasks 3–4), `useStatsStore` (Task 3), versioned one-snapshot export + one-transaction destructive import with parents-first order (Tasks 6–8, 10), dialog plugin + capability (Task 5), Settings buttons + confirm wording (Task 11), round-trip test (Task 9), docs + QA (Tasks 12–13). No gaps found.
 2. **Placeholder scan:** no TBD/TODO/"etc."/"similar to" remain; every test, struct, query, command, component, and doc file is written out in full with exact paths and commands.
 3. **Type consistency:** `StatsReport`/`DayStats`/`StatsTotals`/`ProjectStats` field names match between Rust (snake_case + `rename_all = "camelCase"`), the SQL aliases, and `src/ipc/types.ts`; `ExportFile` row structs match spec §2 column names verbatim; service/command names (`stats_service::get_stats`, `backup_service::export_data`/`import_data`) are used identically across tasks; conventions (`AppError`, `Db`, `ipc<T>()`, `#[tracing::instrument(skip(db))]`, `focus_planner_lib`) match the Phase 1 plan.
-
 
 

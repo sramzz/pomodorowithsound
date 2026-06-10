@@ -10,6 +10,16 @@
 
 **Conventions (per `docs/specs/m1-roadmap.md`):** every task carries a difficulty tag (`[trivial]` `[easy]` `[medium]` `[hard]`). The failing test of each TDD task is designed by the most capable agent; implementation may be assigned by difficulty (cheaper agents take `[trivial]`/`[easy]`); every task is reviewed before its commit lands. Type names follow Phase 1: `AppError` (variants `Db`/`NotFound`/`Validation`), `Db(SqlitePool)` managed state, `ipc<T>()` TS wrapper, serde `camelCase` models, `sqlx::query!`/`query_as!` macros with `cargo sqlx prepare` refreshing the committed `.sqlx/` cache, `#[sqlx::test]` for service tests, `mockIPC` for store tests.
 
+**Cross-agent effort mapping:**
+
+| Task difficulty | Codex | Claude Code |
+|---|---|---|
+| Trivial / Easy | GPT-5.5, low reasoning | Sonnet, low thinking |
+| Medium | GPT-5.5, medium reasoning | Sonnet, high thinking |
+| Difficult / Hard | GPT-5.5, high reasoning | Opus, medium thinking |
+
+`[hard]` is equivalent to Difficult / Hard. Phase-wide and broad architectural reviews use this tier.
+
 **Philosophy (PHILOSOPHY.md):** CQS — all seven mutations return `Result<(), AppError>`; the two queries return data and never mutate; the UI re-queries after mutating. Logging is non-negotiable (spec §7): every command INFO entry/exit via `#[tracing::instrument]`; the planner logs a DEBUG input summary (N microtasks, window, M meetings) and **every placement decision** ("placed work block 09:00–09:20 for microtask X in gap ending …", "pair didn't fit gap ending 12:00, moved to next gap"); commit and clear log INFO. The phase is not done until a junior can follow a generate-and-commit run in `logs/` alone (QA Task 16).
 
 **Phase decisions (resolving spec ambiguities — reviewers check these first):**
