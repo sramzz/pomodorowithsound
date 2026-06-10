@@ -13,6 +13,10 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             commands::project::list_projects,
+            commands::project::create_project,
+            commands::project::update_project,
+            commands::project::archive_project,
+            commands::project::delete_project,
             commands::frontend_log::log_frontend,
         ])
         .setup(|app| {
