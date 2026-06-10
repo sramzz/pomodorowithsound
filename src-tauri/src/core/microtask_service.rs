@@ -2,6 +2,7 @@ use crate::core::time::now_iso8601;
 use crate::error::AppError;
 use crate::models::microtask::Microtask;
 use sqlx::SqlitePool;
+use std::collections::HashSet;
 
 fn validate_microtask_fields(
     title: &str,
@@ -52,11 +53,22 @@ pub async fn create_microtask(
 ) -> Result<(), AppError> {
     validate_microtask_fields(title, estimated_minutes, pomodoro_count)?;
     let title = title.trim();
-    let parent = sqlx::query!("SELECT id FROM tasks WHERE id = ?", task_id)
+    let parent = sqlx::query!("SELECT id, status, is_archived FROM tasks WHERE id = ?", task_id)
         .fetch_optional(pool)
         .await?;
-    if parent.is_none() {
-        return Err(AppError::NotFound { entity: "task", id: task_id.to_string() });
+    let parent = parent.ok_or_else(|| AppError::NotFound {
+        entity: "task",
+        id: task_id.to_string(),
+    })?;
+    if parent.status == "completed" {
+        return Err(AppError::Validation(
+            "cannot create a microtask under a completed task".into(),
+        ));
+    }
+    if parent.is_archived != 0 {
+        return Err(AppError::Validation(
+            "cannot create a microtask under an archived task".into(),
+        ));
     }
     ensure_pomodoro_type_exists(pool, pomodoro_type_id).await?;
     let now = now_iso8601();
@@ -210,7 +222,11 @@ pub async fn reorder_microtasks(
     )
     .fetch_all(&mut *tx)
     .await?;
-    if existing.len() != ordered_ids.len() || !ordered_ids.iter().all(|id| existing.contains(id)) {
+    let unique_ids: HashSet<&String> = ordered_ids.iter().collect();
+    if existing.len() != ordered_ids.len()
+        || unique_ids.len() != ordered_ids.len()
+        || !ordered_ids.iter().all(|id| existing.contains(id))
+    {
         tracing::warn!(
             task_id,
             expected = existing.len(),

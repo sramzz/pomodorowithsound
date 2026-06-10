@@ -50,4 +50,28 @@ describe("usePomodoroTypeStore", () => {
     await store.setDefault("ghost");
     expect(store.error).toContain("not found");
   });
+
+  it("normalizes cleared long-break inputs to null before IPC", async () => {
+    mockIPC((cmd, args) => {
+      if (cmd === "update_pomodoro_type") {
+        expect(args).toMatchObject({
+          longBreakMinutes: null,
+          longBreakEvery: null,
+        });
+        return null;
+      }
+      if (cmd === "list_pomodoro_types") return [standard];
+    });
+
+    const store = usePomodoroTypeStore();
+    await store.updateType("pt-std", {
+      name: "Standard",
+      workMinutes: 20,
+      restMinutes: 5,
+      longBreakMinutes: "",
+      longBreakEvery: "",
+    });
+
+    expect(store.error).toBeNull();
+  });
 });

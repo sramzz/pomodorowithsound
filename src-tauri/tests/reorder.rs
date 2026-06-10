@@ -53,6 +53,22 @@ async fn reorder_goals_rejects_partial_or_foreign_lists(pool: SqlitePool) {
 }
 
 #[sqlx::test]
+async fn reorder_goals_rejects_duplicate_ids_even_when_length_matches(pool: SqlitePool) {
+    seed(&pool).await;
+
+    let err = goal_service::reorder_goals(
+        &pool,
+        "p1",
+        &["g1".to_string(), "g1".to_string(), "g2".to_string()],
+    )
+    .await
+    .unwrap_err();
+
+    assert!(matches!(err, AppError::Validation(_)));
+    assert_eq!(order_of(&pool, "goals", "project_id", "p1").await, ["g1", "g2", "g3"]);
+}
+
+#[sqlx::test]
 async fn reorder_goals_ignores_archived_children(pool: SqlitePool) {
     seed(&pool).await;
     goal_service::archive_goal(&pool, "g2").await.unwrap();
@@ -81,4 +97,30 @@ async fn reorder_tasks_and_microtasks_work_the_same_way(pool: SqlitePool) {
         .await
         .unwrap();
     assert_eq!(order_of(&pool, "microtasks", "task_id", "t1").await, ["m2", "m1"]);
+}
+
+#[sqlx::test]
+async fn reorder_tasks_and_microtasks_reject_duplicate_ids(pool: SqlitePool) {
+    seed(&pool).await;
+
+    let err = task_service::reorder_tasks(
+        &pool,
+        "g1",
+        &["t1".to_string(), "t1".to_string()],
+    )
+    .await
+    .unwrap_err();
+    assert!(matches!(err, AppError::Validation(_)));
+
+    let err = microtask_service::reorder_microtasks(
+        &pool,
+        "t1",
+        &["m1".to_string(), "m1".to_string()],
+    )
+    .await
+    .unwrap_err();
+    assert!(matches!(err, AppError::Validation(_)));
+
+    assert_eq!(order_of(&pool, "tasks", "goal_id", "g1").await, ["t1", "t2"]);
+    assert_eq!(order_of(&pool, "microtasks", "task_id", "t1").await, ["m1", "m2"]);
 }

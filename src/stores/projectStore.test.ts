@@ -37,58 +37,77 @@ describe("useProjectStore", () => {
     expect(store.projects).toHaveLength(0);
     expect(store.error).toBe("boom");
   });
-});
 
-const emptyTree = {
-  id: "p1", name: "My project", description: null, status: "open", goals: [],
-};
+  const emptyTree = {
+    id: "p1", name: "My project", description: null, status: "open" as const, goals: [],
+  };
 
-it("loadProjectTree fills activeProjectTree", async () => {
-  mockIPC((cmd, args) => {
-    if (cmd === "get_project_tree") {
-      expect((args as Record<string, unknown>).projectId).toBe("p1");
-      return emptyTree;
-    }
+  it("loadProjectTree fills activeProjectTree", async () => {
+    mockIPC((cmd, args) => {
+      if (cmd === "get_project_tree") {
+        expect((args as Record<string, unknown>).projectId).toBe("p1");
+        return emptyTree;
+      }
+    });
+    const store = useProjectStore();
+    await store.loadProjectTree("p1");
+    expect(store.activeProjectTree?.id).toBe("p1");
   });
-  const store = useProjectStore();
-  await store.loadProjectTree("p1");
-  expect(store.activeProjectTree?.id).toBe("p1");
-});
 
-it("createGoal generates an id, then refreshes the active tree (CQS)", async () => {
-  const calls: string[] = [];
-  mockIPC((cmd, args) => {
-    calls.push(cmd);
-    if (cmd === "create_goal") {
-      const a = args as Record<string, unknown>;
-      expect(typeof a.id).toBe("string");
-      expect(a.projectId).toBe("p1");
-      expect(a.title).toBe("Ship it");
-      return null;
-    }
-    if (cmd === "get_project_tree") return emptyTree;
-    if (cmd === "list_projects") return [];
+  it("createGoal generates an id, then refreshes the active tree (CQS)", async () => {
+    const calls: string[] = [];
+    mockIPC((cmd, args) => {
+      calls.push(cmd);
+      if (cmd === "create_goal") {
+        const a = args as Record<string, unknown>;
+        expect(typeof a.id).toBe("string");
+        expect(a.projectId).toBe("p1");
+        expect(a.title).toBe("Ship it");
+        return null;
+      }
+      if (cmd === "get_project_tree") return emptyTree;
+      if (cmd === "list_projects") return [];
+    });
+    const store = useProjectStore();
+    await store.loadProjectTree("p1");
+    await store.createGoal("p1", "Ship it");
+    expect(calls).toEqual(
+      expect.arrayContaining(["create_goal", "get_project_tree"]),
+    );
   });
-  const store = useProjectStore();
-  await store.loadProjectTree("p1");
-  await store.createGoal("p1", "Ship it");
-  expect(calls).toEqual(
-    expect.arrayContaining(["create_goal", "get_project_tree"]),
-  );
-});
 
-it("completeMicrotask refreshes both the tree and the project stats", async () => {
-  const calls: string[] = [];
-  mockIPC((cmd) => {
-    calls.push(cmd);
-    if (cmd === "complete_microtask") return null;
-    if (cmd === "get_project_tree") return emptyTree;
-    if (cmd === "list_projects") return [];
+  it("completeMicrotask refreshes both the tree and the project stats", async () => {
+    const calls: string[] = [];
+    mockIPC((cmd) => {
+      calls.push(cmd);
+      if (cmd === "complete_microtask") return null;
+      if (cmd === "get_project_tree") return emptyTree;
+      if (cmd === "list_projects") return [];
+    });
+    const store = useProjectStore();
+    await store.loadProjectTree("p1");
+    await store.completeMicrotask("m1");
+    expect(calls).toContain("complete_microtask");
+    expect(calls.filter((c) => c === "get_project_tree").length).toBeGreaterThanOrEqual(2);
+    expect(calls).toContain("list_projects");
   });
-  const store = useProjectStore();
-  await store.loadProjectTree("p1");
-  await store.completeMicrotask("m1");
-  expect(calls).toContain("complete_microtask");
-  expect(calls.filter((c) => c === "get_project_tree").length).toBeGreaterThanOrEqual(2);
-  expect(calls).toContain("list_projects");
+
+  it("preserves a failed tree refresh error when the project list refresh succeeds", async () => {
+    let treeLoads = 0;
+    mockIPC((cmd) => {
+      if (cmd === "get_project_tree") {
+        treeLoads += 1;
+        if (treeLoads === 1) return emptyTree;
+        throw { code: "db", message: "tree refresh failed" };
+      }
+      if (cmd === "update_project") return null;
+      if (cmd === "list_projects") return [];
+    });
+
+    const store = useProjectStore();
+    await store.loadProjectTree("p1");
+    await store.updateProject("p1", "Renamed", null);
+
+    expect(store.error).toBe("tree refresh failed");
+  });
 });

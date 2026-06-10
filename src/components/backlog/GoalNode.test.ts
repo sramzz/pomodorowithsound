@@ -1,4 +1,4 @@
-import { expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import { createTestingPinia } from "@pinia/testing";
 import GoalNode from "./GoalNode.vue";
@@ -13,6 +13,8 @@ const goal = {
   ],
 };
 
+afterEach(() => vi.restoreAllMocks());
+
 it("sends the full ordered task id list after a drop", async () => {
   const wrapper = mount(GoalNode, {
     props: { goal },
@@ -25,4 +27,22 @@ it("sends the full ordered task id list after a drop", async () => {
   await wrapper.vm.onTaskDrop();
 
   expect(store.reorderTasks).toHaveBeenCalledWith("g1", ["t2", "t1"]);
+});
+
+it("exposes edit, archive, and delete actions", async () => {
+  vi.spyOn(window, "prompt").mockReturnValue("Renamed goal");
+  vi.spyOn(window, "confirm").mockReturnValue(true);
+  const wrapper = mount(GoalNode, {
+    props: { goal },
+    global: { plugins: [createTestingPinia({ createSpy: vi.fn })] },
+  });
+  const store = useProjectStore();
+
+  await wrapper.get('[aria-label="Edit goal"]').trigger("click");
+  await wrapper.get('[aria-label="Archive goal"]').trigger("click");
+  await wrapper.get('[aria-label="Delete goal"]').trigger("click");
+
+  expect(store.updateGoal).toHaveBeenCalledWith("g1", "Renamed goal", null, null, 0);
+  expect(store.archiveGoal).toHaveBeenCalledWith("g1");
+  expect(store.deleteGoal).toHaveBeenCalledWith("g1");
 });

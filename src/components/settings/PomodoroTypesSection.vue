@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive } from "vue";
+import type { PomodoroType } from "../../ipc/types";
 import { usePomodoroTypeStore } from "../../stores/pomodoroTypeStore";
 
 const store = usePomodoroTypeStore();
@@ -23,6 +24,34 @@ function confirmDelete(id: string, name: string) {
   if (window.confirm(`Delete the "${name}" preset? Microtasks using it fall back to the default type.`)) {
     store.deleteType(id);
   }
+}
+
+function editType(type: PomodoroType) {
+  const name = window.prompt("Preset name", type.name)?.trim();
+  if (!name) return;
+  const workMinutes = Number(window.prompt("Work minutes", String(type.workMinutes)));
+  const restMinutes = Number(window.prompt("Rest minutes", String(type.restMinutes)));
+  if (!Number.isInteger(workMinutes) || workMinutes < 1) return;
+  if (!Number.isInteger(restMinutes) || restMinutes < 1) return;
+
+  const longBreakMinutesInput = window.prompt(
+    "Long break minutes (blank for none)",
+    type.longBreakMinutes?.toString() ?? "",
+  );
+  if (longBreakMinutesInput === null) return;
+  const longBreakEveryInput = window.prompt(
+    "Long break every N pomodoros (blank for none)",
+    type.longBreakEvery?.toString() ?? "",
+  );
+  if (longBreakEveryInput === null) return;
+
+  store.updateType(type.id, {
+    name,
+    workMinutes,
+    restMinutes,
+    longBreakMinutes: longBreakMinutesInput === "" ? null : Number(longBreakMinutesInput),
+    longBreakEvery: longBreakEveryInput === "" ? null : Number(longBreakEveryInput),
+  });
 }
 </script>
 
@@ -52,7 +81,10 @@ function confirmDelete(id: string, name: string) {
             <template v-if="t.longBreakMinutes">{{ t.longBreakMinutes }}m every {{ t.longBreakEvery }}</template>
             <template v-else>—</template>
           </td>
-          <td><button class="ghost" @click="confirmDelete(t.id, t.name)">Delete</button></td>
+          <td class="actions">
+            <button class="ghost" :aria-label="`Edit ${t.name}`" @click="editType(t)">Edit</button>
+            <button class="ghost danger" :aria-label="`Delete ${t.name}`" @click="confirmDelete(t.id, t.name)">Delete</button>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -76,5 +108,8 @@ function confirmDelete(id: string, name: string) {
 .create-row input[type="number"] { width: 60px; }
 .hint { color: #6b7484; font-size: 12px; }
 .error { color: #e06c75; }
-.ghost { background: none; border: none; color: #6b7484; cursor: pointer; }
+.actions { white-space: nowrap; }
+.ghost { background: none; border: none; color: #7d8796; cursor: pointer; padding: 0 4px; }
+.ghost:hover { color: #d7dde7; }
+.danger:hover { color: #e06c75; }
 </style>

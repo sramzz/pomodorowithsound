@@ -39,6 +39,33 @@ async fn create_task_rejects_blank_title(pool: SqlitePool) {
 }
 
 #[sqlx::test]
+async fn create_task_rejects_completed_goal(pool: SqlitePool) {
+    seed_goal(&pool).await;
+    sqlx::query("UPDATE goals SET status = 'completed' WHERE id = 'g1'")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let err = task_service::create_task(&pool, "t1", "g1", "T", None, None, 0)
+        .await
+        .unwrap_err();
+
+    assert!(matches!(err, AppError::Validation(_)));
+}
+
+#[sqlx::test]
+async fn create_task_rejects_archived_goal(pool: SqlitePool) {
+    seed_goal(&pool).await;
+    goal_service::archive_goal(&pool, "g1").await.unwrap();
+
+    let err = task_service::create_task(&pool, "t1", "g1", "T", None, None, 0)
+        .await
+        .unwrap_err();
+
+    assert!(matches!(err, AppError::Validation(_)));
+}
+
+#[sqlx::test]
 async fn update_archive_delete_task(pool: SqlitePool) {
     seed_goal(&pool).await;
     task_service::create_task(&pool, "t1", "g1", "Old", Some("d"), None, 1).await.unwrap();

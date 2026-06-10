@@ -1,6 +1,7 @@
 use crate::core::time::now_iso8601;
 use crate::error::AppError;
 use sqlx::SqlitePool;
+use std::collections::HashSet;
 
 pub async fn create_task(
     pool: &SqlitePool,
@@ -16,11 +17,18 @@ pub async fn create_task(
         tracing::warn!(id, "validation: task title must not be empty");
         return Err(AppError::Validation("task title must not be empty".into()));
     }
-    let parent = sqlx::query!("SELECT id FROM goals WHERE id = ?", goal_id)
+    let parent = sqlx::query!("SELECT id, status, is_archived FROM goals WHERE id = ?", goal_id)
         .fetch_optional(pool)
         .await?;
-    if parent.is_none() {
-        return Err(AppError::NotFound { entity: "goal", id: goal_id.to_string() });
+    let parent = parent.ok_or_else(|| AppError::NotFound {
+        entity: "goal",
+        id: goal_id.to_string(),
+    })?;
+    if parent.status == "completed" {
+        return Err(AppError::Validation("cannot create a task under a completed goal".into()));
+    }
+    if parent.is_archived != 0 {
+        return Err(AppError::Validation("cannot create a task under an archived goal".into()));
     }
     let now = now_iso8601();
     sqlx::query!(
@@ -99,7 +107,11 @@ pub async fn reorder_tasks(
     )
     .fetch_all(&mut *tx)
     .await?;
-    if existing.len() != ordered_ids.len() || !ordered_ids.iter().all(|id| existing.contains(id)) {
+    let unique_ids: HashSet<&String> = ordered_ids.iter().collect();
+    if existing.len() != ordered_ids.len()
+        || unique_ids.len() != ordered_ids.len()
+        || !ordered_ids.iter().all(|id| existing.contains(id))
+    {
         tracing::warn!(
             goal_id,
             expected = existing.len(),

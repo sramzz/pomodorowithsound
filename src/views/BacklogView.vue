@@ -27,6 +27,12 @@ async function onGoalDrop() {
     localGoals.value.map((g) => g.id),
   );
 }
+
+function confirmDeleteProject(id: string, name: string) {
+  if (window.confirm(`Delete project "${name}" and all of its backlog items?`)) {
+    store.deleteProject(id);
+  }
+}
 </script>
 
 <template>
@@ -42,7 +48,15 @@ async function onGoalDrop() {
           @click="store.loadProjectTree(p.id)"
         >
           <span>{{ p.name }}</span>
-          <span class="stats">{{ p.completedMicrotasks }}/{{ p.totalMicrotasks }}</span>
+          <span class="project-meta">
+            <span class="stats">{{ p.completedMicrotasks }}/{{ p.totalMicrotasks }}</span>
+            <button
+              class="ghost"
+              :aria-label="`Delete ${p.name}`"
+              title="Delete project"
+              @click.stop="confirmDeleteProject(p.id, p.name)"
+            >Delete</button>
+          </span>
         </li>
       </ul>
       <InlineCreate placeholder="New project" @create="(name) => store.createProject(name)" />
@@ -79,6 +93,9 @@ async function onGoalDrop() {
 .projects li:hover { background: #181d24; }
 .projects li.active { background: #1f2630; color: #fff; }
 .stats { color: #6b7484; font-size: 12px; }
+.project-meta { display: flex; align-items: center; gap: 8px; }
+.ghost { background: none; border: none; color: #8b95a5; cursor: pointer; padding: 0; }
+.ghost:hover { color: #e06c75; }
 .tree { flex: 1; }
 .placeholder { color: #6b7484; }
 .error { color: #e06c75; }

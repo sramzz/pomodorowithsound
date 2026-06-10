@@ -75,6 +75,37 @@ async fn create_microtask_rejects_nonpositive_estimate_and_count(pool: SqlitePoo
 }
 
 #[sqlx::test]
+async fn create_microtask_rejects_completed_task(pool: SqlitePool) {
+    seed_task(&pool).await;
+    sqlx::query("UPDATE tasks SET status = 'completed' WHERE id = 't1'")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let err = microtask_service::create_microtask(
+        &pool, "m1", "t1", "M", 20, 1, None, None, 0,
+    )
+    .await
+    .unwrap_err();
+
+    assert!(matches!(err, AppError::Validation(_)));
+}
+
+#[sqlx::test]
+async fn create_microtask_rejects_archived_task(pool: SqlitePool) {
+    seed_task(&pool).await;
+    task_service::archive_task(&pool, "t1").await.unwrap();
+
+    let err = microtask_service::create_microtask(
+        &pool, "m1", "t1", "M", 20, 1, None, None, 0,
+    )
+    .await
+    .unwrap_err();
+
+    assert!(matches!(err, AppError::Validation(_)));
+}
+
+#[sqlx::test]
 async fn update_archive_delete_microtask(pool: SqlitePool) {
     seed_task(&pool).await;
     microtask_service::create_microtask(&pool, "m1", "t1", "Old", 20, 1, None, None, 0)

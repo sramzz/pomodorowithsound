@@ -22,6 +22,25 @@ async function onMicrotaskDrop() {
   );
 }
 
+function editTask() {
+  const title = window.prompt("Task title", props.task.title)?.trim();
+  if (title) {
+    store.updateTask(
+      props.task.id,
+      title,
+      props.task.description,
+      props.task.deadline,
+      props.task.priority,
+    );
+  }
+}
+
+function confirmDeleteTask() {
+  if (window.confirm(`Delete task "${props.task.title}" and all of its microtasks?`)) {
+    store.deleteTask(props.task.id);
+  }
+}
+
 // Quick estimation: "Outline the doc 45" -> 45 estimated minutes, count auto-computed
 // from the default pomodoro type's work length (spec §6).
 async function createMicrotask(text: string) {
@@ -46,7 +65,11 @@ defineExpose({ localMicrotasks, onMicrotaskDrop });
     <summary>
       <span class="drag-handle">⋮⋮</span>
       <span :class="{ done: task.status === 'completed' }">{{ task.title }}</span>
-      <button class="ghost" title="Archive" @click.prevent="store.archiveTask(task.id)">⌫</button>
+      <span class="actions">
+        <button class="ghost" aria-label="Edit task" title="Edit" @click.prevent.stop="editTask">Edit</button>
+        <button class="ghost" aria-label="Archive task" title="Archive" @click.prevent.stop="store.archiveTask(task.id)">Archive</button>
+        <button class="ghost danger" aria-label="Delete task" title="Delete" @click.prevent.stop="confirmDeleteTask">Delete</button>
+      </span>
     </summary>
     <draggable
       v-model="localMicrotasks"
@@ -70,5 +93,8 @@ defineExpose({ localMicrotasks, onMicrotaskDrop });
 summary { display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; }
 .done { text-decoration: line-through; color: #6b7484; }
 .drag-handle { cursor: grab; color: #4a5260; user-select: none; }
-.ghost { background: none; border: none; color: #6b7484; cursor: pointer; margin-left: auto; }
+.actions { display: flex; gap: 8px; margin-left: auto; }
+.ghost { background: none; border: none; color: #7d8796; cursor: pointer; padding: 0; font-size: 12px; }
+.ghost:hover { color: #d7dde7; }
+.danger:hover { color: #e06c75; }
 </style>

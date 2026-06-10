@@ -10,9 +10,9 @@ export const useProjectStore = defineStore("project", {
     error: null as string | null,
   }),
   actions: {
-    async loadProjects(includeArchived = false) {
+    async loadProjects(includeArchived = false, preserveError = false) {
       this.loading = true;
-      this.error = null;
+      if (!preserveError) this.error = null;
       try {
         this.projects = await ipc<ProjectSummary[]>("list_projects", { includeArchived });
       } catch (e) {
@@ -35,7 +35,7 @@ export const useProjectStore = defineStore("project", {
       try {
         await ipc<void>(cmd, args);
         if (this.activeProjectTree) await this.loadProjectTree(this.activeProjectTree.id);
-        await this.loadProjects();
+        await this.loadProjects(false, true);
       } catch (e) {
         this.error = (e as IpcError).message ?? String(e);
       }

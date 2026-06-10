@@ -6,8 +6,20 @@ export interface PomodoroTypeDraft {
   name: string;
   workMinutes: number;
   restMinutes: number;
-  longBreakMinutes: number | null;
-  longBreakEvery: number | null;
+  longBreakMinutes: number | null | "";
+  longBreakEvery: number | null | "";
+}
+
+function normalizeNullableNumber(value: unknown): number | null {
+  return value === null || value === "" ? null : Number(value);
+}
+
+function normalizeDraft(draft: PomodoroTypeDraft) {
+  return {
+    ...draft,
+    longBreakMinutes: normalizeNullableNumber(draft.longBreakMinutes),
+    longBreakEvery: normalizeNullableNumber(draft.longBreakEvery),
+  };
 }
 
 export const usePomodoroTypeStore = defineStore("pomodoroType", {
@@ -42,10 +54,13 @@ export const usePomodoroTypeStore = defineStore("pomodoroType", {
       }
     },
     async createType(draft: PomodoroTypeDraft) {
-      await this.mutate("create_pomodoro_type", { id: crypto.randomUUID(), ...draft });
+      await this.mutate("create_pomodoro_type", {
+        id: crypto.randomUUID(),
+        ...normalizeDraft(draft),
+      });
     },
     async updateType(id: string, draft: PomodoroTypeDraft) {
-      await this.mutate("update_pomodoro_type", { id, ...draft });
+      await this.mutate("update_pomodoro_type", { id, ...normalizeDraft(draft) });
     },
     async deleteType(id: string) {
       await this.mutate("delete_pomodoro_type", { id });

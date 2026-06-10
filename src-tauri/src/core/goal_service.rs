@@ -1,6 +1,7 @@
 use crate::core::time::now_iso8601;
 use crate::error::AppError;
 use sqlx::SqlitePool;
+use std::collections::HashSet;
 
 pub async fn create_goal(
     pool: &SqlitePool,
@@ -99,7 +100,11 @@ pub async fn reorder_goals(
     )
     .fetch_all(&mut *tx)
     .await?;
-    if existing.len() != ordered_ids.len() || !ordered_ids.iter().all(|id| existing.contains(id)) {
+    let unique_ids: HashSet<&String> = ordered_ids.iter().collect();
+    if existing.len() != ordered_ids.len()
+        || unique_ids.len() != ordered_ids.len()
+        || !ordered_ids.iter().all(|id| existing.contains(id))
+    {
         tracing::warn!(
             project_id,
             expected = existing.len(),
