@@ -4,7 +4,7 @@ Focus Planner is a native desktop application for Pomodoro-based day planning. B
 
 ## Current State
 
-**Phase 1 (scaffold) is complete.** The skeleton is in place: Tauri scaffold, structured Rust logging to rolling files, SQLite schema (10 tables, 2 migrations), a `list_projects` vertical slice from DB to frontend, 4 Rust integration tests + 2 Vitest tests, and CI. The legacy vanilla-JS prototype lives in `legacy/` for reference.
+**Phase 2 backlog management is live.** You can manage projects → goals → tasks → microtasks with completion roll-up, drag reordering, and pomodoro type presets. Day planning arrives in Phase 3. The legacy vanilla-JS prototype lives in `legacy/` for reference.
 
 Active development is tracked in `docs/superpowers/plans/`.
 

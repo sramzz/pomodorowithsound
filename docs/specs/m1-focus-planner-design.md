@@ -335,6 +335,7 @@ All reads are Rust read-only IPC commands — the webview cannot reach the Rust-
 * `list_projects(include_archived: bool)` -> Returns projects with goal/task/microtask completion roll-up stats.
 * `get_project_tree(project_id: String)` -> Returns full nested tree: Project → Goals → Tasks → Microtasks.
 * `get_microtask(id: String)` -> Returns a single microtask.
+* `list_pomodoro_types()` -> Returns all pomodoro type presets. (Added in Phase 2 — needed by the Settings presets section and the quick-estimation input.)
 * `get_day_plan(date: String)` -> Returns the date's plan (regardless of status) and its ordered work blocks.
 * `get_today(date?: String)` -> Returns the **committed** plan, blocks, and meetings for the day (defaults to today).
 * `get_run_status()` -> Returns the active `RuntimeState` of the Start Day engine.
@@ -417,5 +418,4 @@ The UI is built with Vue 3 using Vanilla CSS for clean, premium styling (dark mo
 ### Conventions
 - Commands log through a single instrumentation pattern (`#[tracing::instrument]` on command handlers with `skip`-ed payloads and explicit fields) so the format stays uniform — no ad-hoc `println!`.
 - One run of the Start Day engine must read as a coherent narrative in the file log: started → each block transition with timestamps → sessions written → day ended.
-
 
