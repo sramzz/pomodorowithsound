@@ -66,3 +66,15 @@ pub async fn delete_goal(db: tauri::State<'_, Db>, id: String) -> Result<(), App
     log_outcome(&result);
     result
 }
+
+#[tauri::command]
+#[tracing::instrument(skip(db))]
+pub async fn reorder_goals(
+    db: tauri::State<'_, Db>,
+    project_id: String,
+    ordered_ids: Vec<String>,
+) -> Result<(), AppError> {
+    let result = goal_service::reorder_goals(&db.0, &project_id, &ordered_ids).await;
+    log_outcome(&result);
+    result
+}

@@ -66,3 +66,15 @@ pub async fn delete_task(db: tauri::State<'_, Db>, id: String) -> Result<(), App
     log_outcome(&result);
     result
 }
+
+#[tauri::command]
+#[tracing::instrument(skip(db))]
+pub async fn reorder_tasks(
+    db: tauri::State<'_, Db>,
+    goal_id: String,
+    ordered_ids: Vec<String>,
+) -> Result<(), AppError> {
+    let result = task_service::reorder_tasks(&db.0, &goal_id, &ordered_ids).await;
+    log_outcome(&result);
+    result
+}

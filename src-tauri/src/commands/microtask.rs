@@ -92,3 +92,15 @@ pub async fn delete_microtask(db: tauri::State<'_, Db>, id: String) -> Result<()
     log_outcome(&result);
     result
 }
+
+#[tauri::command]
+#[tracing::instrument(skip(db))]
+pub async fn reorder_microtasks(
+    db: tauri::State<'_, Db>,
+    task_id: String,
+    ordered_ids: Vec<String>,
+) -> Result<(), AppError> {
+    let result = microtask_service::reorder_microtasks(&db.0, &task_id, &ordered_ids).await;
+    log_outcome(&result);
+    result
+}
