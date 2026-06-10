@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT m.id as \"id!: String\", m.task_id as \"task_id!: String\",\n                  m.title, m.estimated_minutes, m.pomodoro_count,\n                  m.pomodoro_type_id, m.deadline, m.priority, m.status\n           FROM microtasks m\n           JOIN tasks t ON m.task_id = t.id\n           JOIN goals g ON t.goal_id = g.id\n           WHERE g.project_id = ?1 AND m.is_archived = 0\n             AND t.is_archived = 0 AND g.is_archived = 0\n           ORDER BY m.sort_order",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "task_id!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "title",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "estimated_minutes",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "pomodoro_count",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "pomodoro_type_id",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "deadline",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "priority",
+        "ordinal": 7,
+        "type_info": "Integer"
+      },
+      {
+        "name": "status",
+        "ordinal": 8,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "c6aaacdc0955d6d650f5f465e3a025fc91dca81be8960741cda33be85e1e85f9"
+}

@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id as \"id!: String\", title, description, deadline, priority, status\n           FROM goals WHERE project_id = ?1 AND is_archived = 0 ORDER BY sort_order",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "title",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "deadline",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "priority",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "status",
+        "ordinal": 5,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "70610aa498f36de49e109a2ab181f144f47466c997492823353990a6e549aaba"
+}

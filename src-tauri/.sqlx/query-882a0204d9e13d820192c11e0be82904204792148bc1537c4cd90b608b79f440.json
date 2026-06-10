@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT t.id as \"id!: String\", t.goal_id as \"goal_id!: String\",\n                  t.title, t.description, t.deadline, t.priority, t.status\n           FROM tasks t JOIN goals g ON t.goal_id = g.id\n           WHERE g.project_id = ?1 AND t.is_archived = 0 AND g.is_archived = 0\n           ORDER BY t.sort_order",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "goal_id!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "title",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "deadline",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "priority",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "status",
+        "ordinal": 6,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "882a0204d9e13d820192c11e0be82904204792148bc1537c4cd90b608b79f440"
+}
