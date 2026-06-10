@@ -34,6 +34,8 @@ pub fn run() {
             commands::microtask::archive_microtask,
             commands::microtask::delete_microtask,
             commands::microtask::reorder_microtasks,
+            commands::microtask::get_microtask,
+            commands::project::get_project_tree,
             commands::pomodoro_type::list_pomodoro_types,
             commands::pomodoro_type::create_pomodoro_type,
             commands::pomodoro_type::update_pomodoro_type,

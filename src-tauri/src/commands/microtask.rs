@@ -104,3 +104,14 @@ pub async fn reorder_microtasks(
     log_outcome(&result);
     result
 }
+
+#[tauri::command]
+#[tracing::instrument(skip(db))]
+pub async fn get_microtask(
+    db: tauri::State<'_, Db>,
+    id: String,
+) -> Result<crate::models::microtask::Microtask, AppError> {
+    let result = microtask_service::get_microtask(&db.0, &id).await;
+    log_outcome(&result);
+    result
+}

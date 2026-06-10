@@ -1,5 +1,6 @@
 use crate::core::time::now_iso8601;
 use crate::error::AppError;
+use crate::models::microtask::Microtask;
 use sqlx::SqlitePool;
 
 fn validate_microtask_fields(
@@ -288,4 +289,27 @@ pub async fn uncomplete_microtask(pool: &SqlitePool, id: &str) -> Result<(), App
     tx.commit().await?;
     tracing::info!("{chain}");
     Ok(())
+}
+
+pub async fn get_microtask(pool: &SqlitePool, id: &str) -> Result<Microtask, AppError> {
+    sqlx::query_as!(
+        Microtask,
+        r#"SELECT id as "id!: String", task_id as "task_id!: String",
+                  title as "title!: String",
+                  estimated_minutes as "estimated_minutes!: i64",
+                  pomodoro_count as "pomodoro_count!: i64",
+                  pomodoro_type_id, deadline,
+                  priority as "priority!: i64",
+                  sort_order as "sort_order!: i64",
+                  status as "status!: String",
+                  is_archived as "is_archived: bool",
+                  completed_at,
+                  created_at as "created_at!: String",
+                  updated_at as "updated_at!: String"
+           FROM microtasks WHERE id = ?1"#,
+        id
+    )
+    .fetch_optional(pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound { entity: "microtask", id: id.to_string() })
 }

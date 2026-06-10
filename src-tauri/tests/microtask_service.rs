@@ -109,3 +109,19 @@ async fn update_archive_delete_microtask(pool: SqlitePool) {
     let err = microtask_service::delete_microtask(&pool, "m1").await.unwrap_err();
     assert!(matches!(err, AppError::NotFound { .. }));
 }
+
+#[sqlx::test]
+async fn get_microtask_returns_the_row_or_not_found(pool: SqlitePool) {
+    seed_task(&pool).await;
+    microtask_service::create_microtask(&pool, "m1", "t1", "Read", 40, 2, None, None, 0)
+        .await
+        .unwrap();
+
+    let m = microtask_service::get_microtask(&pool, "m1").await.unwrap();
+    assert_eq!(m.title, "Read");
+    assert_eq!(m.estimated_minutes, 40);
+    assert_eq!(m.pomodoro_count, 2);
+
+    let err = microtask_service::get_microtask(&pool, "ghost").await.unwrap_err();
+    assert!(matches!(err, AppError::NotFound { entity: "microtask", .. }));
+}

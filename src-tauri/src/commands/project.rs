@@ -1,3 +1,4 @@
+use crate::commands::log_outcome;
 use crate::core::project_service;
 use crate::db::Db;
 use crate::error::AppError;
@@ -18,8 +19,6 @@ pub async fn list_projects(
     }
     result
 }
-
-use crate::commands::log_outcome;
 
 #[tauri::command]
 #[tracing::instrument(skip(db, description))]
@@ -59,6 +58,17 @@ pub async fn archive_project(db: tauri::State<'_, Db>, id: String) -> Result<(),
 #[tracing::instrument(skip(db))]
 pub async fn delete_project(db: tauri::State<'_, Db>, id: String) -> Result<(), AppError> {
     let result = project_service::delete_project(&db.0, &id).await;
+    log_outcome(&result);
+    result
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(db))]
+pub async fn get_project_tree(
+    db: tauri::State<'_, Db>,
+    project_id: String,
+) -> Result<crate::models::tree::ProjectTree, AppError> {
+    let result = project_service::get_project_tree(&db.0, &project_id).await;
     log_outcome(&result);
     result
 }
