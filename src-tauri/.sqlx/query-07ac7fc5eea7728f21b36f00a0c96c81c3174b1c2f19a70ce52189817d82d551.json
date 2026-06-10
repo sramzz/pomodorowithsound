@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM microtasks WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "07ac7fc5eea7728f21b36f00a0c96c81c3174b1c2f19a70ce52189817d82d551"
+}

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT pomodoro_type_id FROM microtasks WHERE id = 'm1'",
+  "describe": {
+    "columns": [
+      {
+        "name": "pomodoro_type_id",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "4b86e85602893b2306d834ddc221b078e353d3778e6dc2bc1d1590cef41f8874"
+}

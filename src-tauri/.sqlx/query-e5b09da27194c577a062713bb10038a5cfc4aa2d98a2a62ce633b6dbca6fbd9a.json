@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO microtasks (id, task_id, title, estimated_minutes, pomodoro_count,\n                                 pomodoro_type_id, deadline, priority, sort_order,\n                                 status, is_archived, created_at, updated_at)\n         VALUES (?, ?, ?, ?, ?, ?, ?, ?,\n                 (SELECT COALESCE(MAX(sort_order) + 1, 0) FROM microtasks WHERE task_id = ?),\n                 'open', 0, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 11
+    },
+    "nullable": []
+  },
+  "hash": "e5b09da27194c577a062713bb10038a5cfc4aa2d98a2a62ce633b6dbca6fbd9a"
+}

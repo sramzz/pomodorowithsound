@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE microtasks SET is_archived = 1, updated_at = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "a792856397c9f3331f289526c499af6780de6afbc4aba4eb5ff177b52369a308"
+}

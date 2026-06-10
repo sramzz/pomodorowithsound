@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE microtasks SET title = ?, estimated_minutes = ?, pomodoro_count = ?,\n                               pomodoro_type_id = ?, deadline = ?, priority = ?, updated_at = ?\n         WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": []
+  },
+  "hash": "873fc010ea841193cd8c9913a9fc033ff42f82ca29bae9c11b725c591c00072c"
+}
