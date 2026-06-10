@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT COUNT(*) as \"cnt: i64\" FROM tasks\n               WHERE goal_id = ? AND status = 'open' AND is_archived = 0",
+  "describe": {
+    "columns": [
+      {
+        "name": "cnt: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e7e370da3dc76a9f0dd580316c4ed58a1ae42b2774f485c28ce8128aee333126"
+}

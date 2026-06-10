@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE goals SET status = 'completed', completed_at = ?, updated_at = ?\n                 WHERE id = ? AND status = 'open'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "980badd7891c0aed0bb6d6e7fdce2d933feac9a513f925e334714b403cfcae1f"
+}

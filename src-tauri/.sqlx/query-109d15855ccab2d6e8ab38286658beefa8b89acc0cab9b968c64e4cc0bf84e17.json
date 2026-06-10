@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE microtasks SET status = 'completed', completed_at = ?, updated_at = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "109d15855ccab2d6e8ab38286658beefa8b89acc0cab9b968c64e4cc0bf84e17"
+}

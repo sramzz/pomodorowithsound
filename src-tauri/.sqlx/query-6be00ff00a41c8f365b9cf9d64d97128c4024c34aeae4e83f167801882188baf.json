@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT COUNT(*) as \"cnt: i64\" FROM microtasks\n           WHERE task_id = ? AND status = 'open' AND is_archived = 0",
+  "describe": {
+    "columns": [
+      {
+        "name": "cnt: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "6be00ff00a41c8f365b9cf9d64d97128c4024c34aeae4e83f167801882188baf"
+}

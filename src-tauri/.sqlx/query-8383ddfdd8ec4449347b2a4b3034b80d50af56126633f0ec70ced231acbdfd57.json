@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE tasks SET status = 'open', completed_at = NULL, updated_at = ?\n         WHERE id = ? AND status = 'completed'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "8383ddfdd8ec4449347b2a4b3034b80d50af56126633f0ec70ced231acbdfd57"
+}

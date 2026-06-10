@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT goal_id FROM tasks WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "goal_id",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "fae1913ccd468f50386146389806885ede9e7e0f3b080486e6c987c3b72a51a0"
+}

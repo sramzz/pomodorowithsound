@@ -126,3 +126,129 @@ pub async fn delete_microtask(pool: &SqlitePool, id: &str) -> Result<(), AppErro
     }
     Ok(())
 }
+
+/// Roll-up rule (spec §3), one transaction: completing the last open,
+/// non-archived microtask of a task completes the task, which may complete
+/// the goal when its last open task completes. Stops at the goal.
+pub async fn complete_microtask(pool: &SqlitePool, id: &str) -> Result<(), AppError> {
+    let mut tx = pool.begin().await?;
+
+    let micro = sqlx::query!("SELECT task_id, status FROM microtasks WHERE id = ?", id)
+        .fetch_optional(&mut *tx)
+        .await?
+        .ok_or_else(|| AppError::NotFound { entity: "microtask", id: id.to_string() })?;
+    if micro.status == "completed" {
+        tracing::info!(microtask_id = id, "already completed - no-op");
+        return Ok(());
+    }
+
+    let now = now_iso8601();
+    sqlx::query!(
+        "UPDATE microtasks SET status = 'completed', completed_at = ?, updated_at = ? WHERE id = ?",
+        now, now, id
+    )
+    .execute(&mut *tx)
+    .await?;
+    let mut chain = format!("microtask {id} completed");
+
+    let open_siblings = sqlx::query!(
+        r#"SELECT COUNT(*) as "cnt: i64" FROM microtasks
+           WHERE task_id = ? AND status = 'open' AND is_archived = 0"#,
+        micro.task_id
+    )
+    .fetch_one(&mut *tx)
+    .await?;
+
+    if open_siblings.cnt == 0 {
+        sqlx::query!(
+            "UPDATE tasks SET status = 'completed', completed_at = ?, updated_at = ?
+             WHERE id = ? AND status = 'open'",
+            now, now, micro.task_id
+        )
+        .execute(&mut *tx)
+        .await?;
+        chain.push_str(&format!(" -> task {} completed", micro.task_id));
+
+        let goal_id = sqlx::query!("SELECT goal_id FROM tasks WHERE id = ?", micro.task_id)
+            .fetch_one(&mut *tx)
+            .await?
+            .goal_id;
+        let open_tasks = sqlx::query!(
+            r#"SELECT COUNT(*) as "cnt: i64" FROM tasks
+               WHERE goal_id = ? AND status = 'open' AND is_archived = 0"#,
+            goal_id
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+        if open_tasks.cnt == 0 {
+            sqlx::query!(
+                "UPDATE goals SET status = 'completed', completed_at = ?, updated_at = ?
+                 WHERE id = ? AND status = 'open'",
+                now, now, goal_id
+            )
+            .execute(&mut *tx)
+            .await?;
+            chain.push_str(&format!(" -> goal {goal_id} completed"));
+        }
+    }
+
+    tx.commit().await?;
+    tracing::info!("{chain}");
+    Ok(())
+}
+
+/// Reverses the roll-up, one transaction: a task with an open microtask
+/// cannot stay completed, nor can its goal — both reopen if completed.
+pub async fn uncomplete_microtask(pool: &SqlitePool, id: &str) -> Result<(), AppError> {
+    let mut tx = pool.begin().await?;
+
+    let micro = sqlx::query!("SELECT task_id, status FROM microtasks WHERE id = ?", id)
+        .fetch_optional(&mut *tx)
+        .await?
+        .ok_or_else(|| AppError::NotFound { entity: "microtask", id: id.to_string() })?;
+    if micro.status == "open" {
+        tracing::info!(microtask_id = id, "already open - no-op");
+        return Ok(());
+    }
+
+    let now = now_iso8601();
+    sqlx::query!(
+        "UPDATE microtasks SET status = 'open', completed_at = NULL, updated_at = ? WHERE id = ?",
+        now, id
+    )
+    .execute(&mut *tx)
+    .await?;
+    let mut chain = format!("microtask {id} reopened");
+
+    let task_reopened = sqlx::query!(
+        "UPDATE tasks SET status = 'open', completed_at = NULL, updated_at = ?
+         WHERE id = ? AND status = 'completed'",
+        now, micro.task_id
+    )
+    .execute(&mut *tx)
+    .await?
+    .rows_affected();
+    if task_reopened > 0 {
+        chain.push_str(&format!(" -> task {} reopened", micro.task_id));
+    }
+
+    let goal_id = sqlx::query!("SELECT goal_id FROM tasks WHERE id = ?", micro.task_id)
+        .fetch_one(&mut *tx)
+        .await?
+        .goal_id;
+    let goal_reopened = sqlx::query!(
+        "UPDATE goals SET status = 'open', completed_at = NULL, updated_at = ?
+         WHERE id = ? AND status = 'completed'",
+        now, goal_id
+    )
+    .execute(&mut *tx)
+    .await?
+    .rows_affected();
+    if goal_reopened > 0 {
+        chain.push_str(&format!(" -> goal {goal_id} reopened"));
+    }
+
+    tx.commit().await?;
+    tracing::info!("{chain}");
+    Ok(())
+}
