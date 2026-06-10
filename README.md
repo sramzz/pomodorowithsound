@@ -1,7 +1,59 @@
-# Tauri + Vue + TypeScript
+# Focus Planner
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Focus Planner is a native desktop application for Pomodoro-based day planning. Built with Tauri v2 (Rust backend) + Vue 3 + TypeScript + SQLite, it lets you manage a backlog of Projects → Goals → Tasks → Microtasks, generate a deterministic daily schedule, and run a Pomodoro timer loop — all offline, with sound and system notifications driven from Rust so they fire reliably even when the window is minimized.
 
-## Recommended IDE Setup
+## Current State
 
-- [VS Code](https://code.visualstudio.com/) + [Vue - Official](https://marketplace.visualstudio.com/items?itemName=Vue.volar) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+**Phase 1 (scaffold) is complete.** The skeleton is in place: Tauri scaffold, structured Rust logging to rolling files, SQLite schema (10 tables, 2 migrations), a `list_projects` vertical slice from DB to frontend, 4 Rust unit tests + 2 Vitest tests, and CI. The legacy vanilla-JS prototype lives in `legacy/` for reference.
+
+Active development is tracked in `docs/superpowers/plans/`.
+
+## Setup & Dev
+
+Install the SQLx CLI once:
+
+```sh
+cargo install sqlx-cli --no-default-features --features sqlite
+```
+
+Then on each fresh clone:
+
+```sh
+./scripts/setup-db.sh   # creates the SQLite dev DB and runs migrations
+npm install
+npm run tauri dev
+```
+
+## Testing
+
+```sh
+# Frontend (Vitest)
+npm test
+
+# Rust unit tests
+cargo test --manifest-path src-tauri/Cargo.toml
+
+# TypeScript typecheck
+npx vue-tsc --noEmit
+```
+
+CI runs all three automatically on every push/PR (see `.github/workflows/ci.yml`).
+
+## Logs
+
+Structured logs are written to `logs/focus-planner.log.<date>` (daily rolling). The `logs/` directory is gitignored; a `.gitkeep` keeps the folder tracked. Set `RUST_LOG` to control verbosity (default: `info` to file, `debug` to console in dev).
+
+## Key Docs
+
+| Path | What it is |
+|------|-----------|
+| `PHILOSOPHY.md` | Project development standards and operational principles |
+| `docs/specs/m1-focus-planner-design.md` | Full M1 architecture + schema + API spec |
+| `docs/specs/m1-roadmap.md` | Six-phase M1 roadmap |
+| `docs/superpowers/plans/` | Per-phase implementation plans |
+| `docs/db-context/` | Plain-language DB schema walk + migration history |
+| `docs/lessons/` | Hard-won lessons — one file per category |
+
+## Recommended IDE
+
+VS Code + [Vue - Official](https://marketplace.visualstudio.com/items?itemName=Vue.volar) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
