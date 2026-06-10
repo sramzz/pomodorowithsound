@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT COUNT(*) as \"cnt: i64\" FROM goals",
+  "describe": {
+    "columns": [
+      {
+        "name": "cnt: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "29ac60da030fbcd10f7bfc9a222bbc8eb1dd34c79d4ae614fda17528b4bc73e9"
+}
