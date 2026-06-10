@@ -100,7 +100,7 @@ modeling, schema-change management via SQLx migrations.
 
 - **Rust:** unit tests per Core service with in-memory SQLite (`sqlite::memory:` + `sqlx::migrate!`). Densest coverage: planner (Phase 3) and roll-up (Phase 2). Runtime via tokio time control (Phase 4). CI runs with `SQLX_OFFLINE=true`.
 - **Frontend:** vitest for Pinia stores using `mockIPC`; component tests only for the timeline's drag logic.
-- **No E2E in M1:** `tauri-driver` does not support macOS (the dev platform). Each phase plan ends with a manual QA checklist instead — don't burn days on WebDriver.
+- **No E2E in M1:** the official `tauri-driver` does not support macOS (the dev platform). Third-party macOS WebDrivers for Tauri exist as of 2026 (open-source `tauri-webdriver` projects, CrabNebula's commercial service) but are young — not worth the setup cost for M1. Each phase plan ends with a manual QA checklist instead; revisit E2E in a later milestone.
 
 ---
 

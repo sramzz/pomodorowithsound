@@ -6,7 +6,7 @@
 
 **Architecture:** One tokio task (the **actor**) exclusively owns `RuntimeState` — no shared `Mutex`. IPC commands send `RuntimeCmd` messages through an `mpsc::Sender` held in Tauri managed state and await a `oneshot` reply carrying only `Result<(), AppError>` (CQS: state flows back via `runtime-tick` events and `get_run_status`). The actor `select!`s over the command channel and a 1-second `tokio::time::interval`. The engine lives in `core/runtime_service.rs` and is **Tauri-free**: it takes `Arc<dyn SoundPlayer>`, `Arc<dyn Notifier>`, and `Arc<dyn TickSink>` instead of an `AppHandle`, so deterministic tests drive it with `tokio::time::pause()`/`advance()` and recording fakes. Thin adapters in `src/platform.rs` (rodio, tauri-plugin-notification, `app.emit`) bind it to the real world.
 
-**Tech Stack:** Everything from Phase 1 (Tauri 2, Vue 3, Pinia, Vitest, SQLx 0.8, tracing) plus: `rodio` 0.19 (synthesized SineWave tones, no assets), `tauri-plugin-notification` 2, `uuid` (v4, session row ids), `chrono` (ISO timestamps, block durations), tokio `test-util` (dev-dependency, paused-time tests).
+**Tech Stack:** Everything from Phase 1 (Tauri 2, Vue 3, Pinia, Vitest, SQLx 0.8, tracing) plus: `rodio` 0.22 (synthesized SineWave tones, no assets), `tauri-plugin-notification` 2, `uuid` (v4, session row ids), `chrono` (ISO timestamps, block durations), tokio `test-util` (dev-dependency, paused-time tests).
 
 **Conventions (per `docs/specs/m1-roadmap.md`):** every task carries a difficulty tag (`[trivial]`/`[easy]`/`[medium]`/`[hard]`). TDD role split: the failing test of each TDD task is **designed by the most capable agent**; implementation may be assigned by difficulty (cheaper agents take `[trivial]`/`[easy]`); **every task is reviewed before its commit lands**. The actor + state machine (Tasks 5–9) is the `[hard]` core — do not parallelize those five tasks; they build on each other in order.
 
@@ -58,7 +58,7 @@ Expected: a number (any). This confirms the schema + dev DB are intact; actual c
 - [ ] **Step 1: Add to `[dependencies]` in `src-tauri/Cargo.toml`**
 
 ```toml
-rodio = "0.19"
+rodio = "0.22"
 uuid = { version = "1", features = ["v4"] }
 chrono = "0.4"
 tauri-plugin-notification = "2"
@@ -1439,21 +1439,21 @@ pub struct RodioSoundPlayer;
 fn play_notes(label: &'static str, notes: &'static [(f32, u64)]) {
     std::thread::spawn(move || {
         use rodio::source::{SineWave, Source};
-        match rodio::OutputStream::try_default() {
-            Ok((_stream, handle)) => match rodio::Sink::try_new(&handle) {
-                Ok(sink) => {
-                    for &(freq, ms) in notes {
-                        sink.append(
-                            SineWave::new(freq)
-                                .take_duration(Duration::from_millis(ms))
-                                .amplify(0.6), // fixed in M1; Phase 6 wires the volume setting
-                        );
-                    }
-                    sink.sleep_until_end();
-                    tracing::info!(sound = label, "sound played");
+        // rodio 0.21+ API: OutputStreamBuilder replaced OutputStream::try_default,
+        // Sink::connect_new(&Mixer) replaced Sink::try_new(&OutputStreamHandle).
+        match rodio::OutputStreamBuilder::open_default_stream() {
+            Ok(stream) => {
+                let sink = rodio::Sink::connect_new(stream.mixer());
+                for &(freq, ms) in notes {
+                    sink.append(
+                        SineWave::new(freq)
+                            .take_duration(Duration::from_millis(ms))
+                            .amplify(0.6), // fixed in M1; Phase 6 wires the volume setting
+                    );
                 }
-                Err(e) => tracing::error!(error = %e, sound = label, "audio sink creation failed"),
-            },
+                sink.sleep_until_end(); // `stream` stays alive until here — required for playback
+                tracing::info!(sound = label, "sound played");
+            }
             Err(e) => tracing::error!(error = %e, sound = label, "audio output unavailable"),
         }
     });

@@ -458,20 +458,19 @@ Phase 4 created the rodio synth module (per spec §1, SineWave sources). Two cha
 
 - [ ] **Step 1: Ensure the audio module exposes a volume-taking completion sound**
 
-Target signature and body (the two-note sequence from spec §4; match the rodio version Phase 4 pinned — this is the 0.19/0.20 API):
+Target signature and body (the two-note sequence from spec §4; match the rodio version Phase 4 pinned — this is the 0.21+ API, rodio 0.22):
 
 ```rust
 use crate::error::AppError;
 use rodio::source::{SineWave, Source};
-use rodio::{OutputStream, Sink};
+use rodio::{OutputStreamBuilder, Sink};
 use std::time::Duration;
 
 /// Blocking — callers in async context wrap in spawn_blocking.
 pub fn play_completion_sound(volume: f32) -> Result<(), AppError> {
-    let (_stream, handle) = OutputStream::try_default()
+    let stream = OutputStreamBuilder::open_default_stream()
         .map_err(|e| AppError::Internal(format!("no audio output device: {e}")))?;
-    let sink = Sink::try_new(&handle)
-        .map_err(|e| AppError::Internal(format!("audio sink failed: {e}")))?;
+    let sink = Sink::connect_new(stream.mixer());
     sink.set_volume(volume);
     sink.append(SineWave::new(880.0).take_duration(Duration::from_millis(150)).amplify(0.6));
     sink.append(SineWave::new(1174.66).take_duration(Duration::from_millis(250)).amplify(0.6));
