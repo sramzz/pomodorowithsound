@@ -1,4 +1,5 @@
 pub mod frontend_log;
+pub mod goal;
 pub mod project;
 
 use crate::error::AppError;
