@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT is_archived FROM tasks WHERE id = 't1'",
+  "describe": {
+    "columns": [
+      {
+        "name": "is_archived",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "602373399b8fb1f00e117e378669dddeac9f6853c5ee1251404119a8210de6dc"
+}
