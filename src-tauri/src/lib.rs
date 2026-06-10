@@ -25,6 +25,12 @@ pub fn run() {
             commands::task::update_task,
             commands::task::archive_task,
             commands::task::delete_task,
+            commands::microtask::create_microtask,
+            commands::microtask::update_microtask,
+            commands::microtask::complete_microtask,
+            commands::microtask::uncomplete_microtask,
+            commands::microtask::archive_microtask,
+            commands::microtask::delete_microtask,
             commands::frontend_log::log_frontend,
         ])
         .setup(|app| {
