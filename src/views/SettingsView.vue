@@ -1,6 +1,11 @@
+<script setup lang="ts">
+import PomodoroTypesSection from "../components/settings/PomodoroTypesSection.vue";
+</script>
+
 <template>
   <section>
     <h1>Settings</h1>
-    <p class="placeholder">Settings configuration arrives in Phase 2.</p>
+    <PomodoroTypesSection />
+    <p class="placeholder">Audio, notification, and planning-window settings arrive in Phase 6.</p>
   </section>
 </template>
