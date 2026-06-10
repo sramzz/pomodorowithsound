@@ -21,6 +21,10 @@ pub fn run() {
             commands::goal::update_goal,
             commands::goal::archive_goal,
             commands::goal::delete_goal,
+            commands::task::create_task,
+            commands::task::update_task,
+            commands::task::archive_task,
+            commands::task::delete_task,
             commands::frontend_log::log_frontend,
         ])
         .setup(|app| {
