@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id as \"id!: String\", name as \"name!: String\",\n                  work_minutes as \"work_minutes!: i64\", rest_minutes as \"rest_minutes!: i64\",\n                  long_break_minutes as \"long_break_minutes?: i64\",\n                  long_break_every as \"long_break_every?: i64\",\n                  is_default as \"is_default!: bool\",\n                  created_at as \"created_at!: String\", updated_at as \"updated_at!: String\"\n           FROM pomodoro_types ORDER BY created_at",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "work_minutes!: i64",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "rest_minutes!: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "long_break_minutes?: i64",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "long_break_every?: i64",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "is_default!: bool",
+        "ordinal": 6,
+        "type_info": "Integer"
+      },
+      {
+        "name": "created_at!: String",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at!: String",
+        "ordinal": 8,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "082ada8d19d0e5ba2bd941287936fe2c0937d80e7e28050441d265cf0db8ff54"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO pomodoro_types (id, name, work_minutes, rest_minutes, long_break_minutes,\n                                     long_break_every, is_default, created_at, updated_at)\n         VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": []
+  },
+  "hash": "a8cba647a05db1b20d81e7c2f9c98d15ef81354eb5d2649b88b36a843581e52f"
+}

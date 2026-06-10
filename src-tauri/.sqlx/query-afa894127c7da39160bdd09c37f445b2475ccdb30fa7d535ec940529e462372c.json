@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT name, work_minutes, rest_minutes, long_break_minutes, long_break_every\n         FROM pomodoro_types WHERE id = 'pt1'",
+  "describe": {
+    "columns": [
+      {
+        "name": "name",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "work_minutes",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "rest_minutes",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "long_break_minutes",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "long_break_every",
+        "ordinal": 4,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "afa894127c7da39160bdd09c37f445b2475ccdb30fa7d535ec940529e462372c"
+}

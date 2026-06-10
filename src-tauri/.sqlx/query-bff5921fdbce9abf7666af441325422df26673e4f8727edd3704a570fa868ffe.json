@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE pomodoro_types SET is_default = 0, updated_at = ? WHERE is_default = 1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "bff5921fdbce9abf7666af441325422df26673e4f8727edd3704a570fa868ffe"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE pomodoro_types SET name = ?, work_minutes = ?, rest_minutes = ?,\n                                   long_break_minutes = ?, long_break_every = ?, updated_at = ?\n         WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "7573764e0b8dab66c59a47d3d89736cb78eb733c899cd9ec56faaf1f3df406d8"
+}

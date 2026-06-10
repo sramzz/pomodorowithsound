@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM pomodoro_types WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "3e7718c24ccd297cfd8cfe4c6ccfeabf67ff30ea542791107ca1e5378e9dd78c"
+}
