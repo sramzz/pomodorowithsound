@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id as \"id!: String\" FROM microtasks WHERE task_id = ? AND is_archived = 0",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "20487bd0c09745b66187eb9247bfdc129aae624ed6781fbd2e7790d421696fcf"
+}

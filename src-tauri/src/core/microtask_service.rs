@@ -197,6 +197,43 @@ pub async fn complete_microtask(pool: &SqlitePool, id: &str) -> Result<(), AppEr
     Ok(())
 }
 
+pub async fn reorder_microtasks(
+    pool: &SqlitePool,
+    task_id: &str,
+    ordered_ids: &[String],
+) -> Result<(), AppError> {
+    let mut tx = pool.begin().await?;
+    let existing: Vec<String> = sqlx::query_scalar!(
+        r#"SELECT id as "id!: String" FROM microtasks WHERE task_id = ? AND is_archived = 0"#,
+        task_id
+    )
+    .fetch_all(&mut *tx)
+    .await?;
+    if existing.len() != ordered_ids.len() || !ordered_ids.iter().all(|id| existing.contains(id)) {
+        tracing::warn!(
+            task_id,
+            expected = existing.len(),
+            got = ordered_ids.len(),
+            "validation: reorder_microtasks needs the full ordered list of the task's non-archived microtasks"
+        );
+        return Err(AppError::Validation(
+            "ordered_ids must contain exactly the task's non-archived microtasks".into(),
+        ));
+    }
+    let now = now_iso8601();
+    for (index, id) in ordered_ids.iter().enumerate() {
+        let index = index as i64;
+        sqlx::query!(
+            "UPDATE microtasks SET sort_order = ?, updated_at = ? WHERE id = ?",
+            index, now, id
+        )
+        .execute(&mut *tx)
+        .await?;
+    }
+    tx.commit().await?;
+    Ok(())
+}
+
 /// Reverses the roll-up, one transaction: a task with an open microtask
 /// cannot stay completed, nor can its goal — both reopen if completed.
 pub async fn uncomplete_microtask(pool: &SqlitePool, id: &str) -> Result<(), AppError> {

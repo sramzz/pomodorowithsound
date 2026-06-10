@@ -86,3 +86,40 @@ pub async fn delete_task(pool: &SqlitePool, id: &str) -> Result<(), AppError> {
     }
     Ok(())
 }
+
+pub async fn reorder_tasks(
+    pool: &SqlitePool,
+    goal_id: &str,
+    ordered_ids: &[String],
+) -> Result<(), AppError> {
+    let mut tx = pool.begin().await?;
+    let existing: Vec<String> = sqlx::query_scalar!(
+        r#"SELECT id as "id!: String" FROM tasks WHERE goal_id = ? AND is_archived = 0"#,
+        goal_id
+    )
+    .fetch_all(&mut *tx)
+    .await?;
+    if existing.len() != ordered_ids.len() || !ordered_ids.iter().all(|id| existing.contains(id)) {
+        tracing::warn!(
+            goal_id,
+            expected = existing.len(),
+            got = ordered_ids.len(),
+            "validation: reorder_tasks needs the full ordered list of the goal's non-archived tasks"
+        );
+        return Err(AppError::Validation(
+            "ordered_ids must contain exactly the goal's non-archived tasks".into(),
+        ));
+    }
+    let now = now_iso8601();
+    for (index, id) in ordered_ids.iter().enumerate() {
+        let index = index as i64;
+        sqlx::query!(
+            "UPDATE tasks SET sort_order = ?, updated_at = ? WHERE id = ?",
+            index, now, id
+        )
+        .execute(&mut *tx)
+        .await?;
+    }
+    tx.commit().await?;
+    Ok(())
+}
