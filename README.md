@@ -4,7 +4,7 @@ Focus Planner is a native desktop application for Pomodoro-based day planning. B
 
 ## Current State
 
-**Phase 2 backlog management is live.** You can manage projects → goals → tasks → microtasks with completion roll-up, drag reordering, and pomodoro type presets. Day planning arrives in Phase 3. The legacy vanilla-JS prototype lives in `legacy/` for reference.
+**Phase 2 core backlog planning is live.** You can create projects → goals → tasks → microtasks, with completion roll-up, drag reordering, and pomodoro type presets. Day planning arrives in Phase 3. The legacy vanilla-JS prototype lives in `legacy/` for reference.
 
 Active development is tracked in `docs/superpowers/plans/`.
 
