@@ -34,6 +34,11 @@ pub fn run() {
             commands::microtask::archive_microtask,
             commands::microtask::delete_microtask,
             commands::microtask::reorder_microtasks,
+            commands::pomodoro_type::list_pomodoro_types,
+            commands::pomodoro_type::create_pomodoro_type,
+            commands::pomodoro_type::update_pomodoro_type,
+            commands::pomodoro_type::delete_pomodoro_type,
+            commands::pomodoro_type::set_default_pomodoro_type,
             commands::frontend_log::log_frontend,
         ])
         .setup(|app| {
