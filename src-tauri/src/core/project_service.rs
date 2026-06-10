@@ -1,23 +1,30 @@
 use crate::core::time::now_iso8601;
 use crate::error::AppError;
-use crate::models::project::Project;
+use crate::models::project::ProjectSummary;
 use sqlx::SqlitePool;
 
-pub async fn list_projects(pool: &SqlitePool, include_archived: bool) -> Result<Vec<Project>, AppError> {
+pub async fn list_projects(pool: &SqlitePool, include_archived: bool) -> Result<Vec<ProjectSummary>, AppError> {
     let projects = sqlx::query_as!(
-        Project,
-        r#"SELECT
-                  id as "id!",
-                  name as "name!",
-                  description,
-                  status as "status!",
-                  is_archived as "is_archived!: bool",
-                  completed_at,
-                  created_at as "created_at!",
-                  updated_at as "updated_at!"
-           FROM projects
-           WHERE is_archived = 0 OR ?1 = 1
-           ORDER BY created_at"#,
+        ProjectSummary,
+        r#"SELECT p.id as "id!: String", p.name as "name!: String", p.description,
+                  p.status as "status!: String",
+                  p.is_archived as "is_archived!: bool",
+                  p.completed_at, p.created_at as "created_at!: String",
+                  p.updated_at as "updated_at!: String",
+                  (SELECT COUNT(*) FROM microtasks m
+                     JOIN tasks t ON m.task_id = t.id
+                     JOIN goals g ON t.goal_id = g.id
+                    WHERE g.project_id = p.id AND m.is_archived = 0
+                  ) as "total_microtasks!: i64",
+                  (SELECT COUNT(*) FROM microtasks m
+                     JOIN tasks t ON m.task_id = t.id
+                     JOIN goals g ON t.goal_id = g.id
+                    WHERE g.project_id = p.id AND m.is_archived = 0
+                      AND m.status = 'completed'
+                  ) as "completed_microtasks!: i64"
+           FROM projects p
+           WHERE p.is_archived = 0 OR ?1 = 1
+           ORDER BY p.created_at"#,
         include_archived
     )
     .fetch_all(pool)
