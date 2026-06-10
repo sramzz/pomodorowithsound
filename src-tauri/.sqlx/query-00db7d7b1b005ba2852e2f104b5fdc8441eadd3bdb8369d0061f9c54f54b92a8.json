@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO goals (id, project_id, title, description, deadline, priority, sort_order,\n                            status, is_archived, created_at, updated_at)\n         VALUES (?, ?, ?, ?, ?, ?,\n                 (SELECT COALESCE(MAX(sort_order) + 1, 0) FROM goals WHERE project_id = ?),\n                 'open', 0, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 9
+    },
+    "nullable": []
+  },
+  "hash": "00db7d7b1b005ba2852e2f104b5fdc8441eadd3bdb8369d0061f9c54f54b92a8"
+}

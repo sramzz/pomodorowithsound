@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE goals SET title = ?, description = ?, deadline = ?, priority = ?, updated_at = ?\n         WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "02119c76d6357d3b2283ddea4f5fe6d45f72a2539fd9093aeaba2694ac889cb2"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE goals SET is_archived = 1, updated_at = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "21931ccfdfadd1c083d52bff5836e3d003317f040414c983d977c7f69c04e7f2"
+}

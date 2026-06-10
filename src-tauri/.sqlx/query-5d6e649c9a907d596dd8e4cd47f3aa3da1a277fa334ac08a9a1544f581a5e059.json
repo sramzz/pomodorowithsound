@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT is_archived FROM goals WHERE id = 'g1'",
+  "describe": {
+    "columns": [
+      {
+        "name": "is_archived",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5d6e649c9a907d596dd8e4cd47f3aa3da1a277fa334ac08a9a1544f581a5e059"
+}

@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, sort_order, priority, deadline FROM goals ORDER BY sort_order",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "sort_order",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "priority",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "deadline",
+        "ordinal": 3,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "8dc184aa7696fcb808011e4412acfa3c6b00dee747e4754ce7639c9a73d5d1e4"
+}
