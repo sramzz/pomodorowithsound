@@ -156,3 +156,28 @@ async fn get_microtask_returns_the_row_or_not_found(pool: SqlitePool) {
     let err = microtask_service::get_microtask(&pool, "ghost").await.unwrap_err();
     assert!(matches!(err, AppError::NotFound { entity: "microtask", .. }));
 }
+
+#[sqlx::test]
+async fn test_create_microtask_under_archived_or_completed_task_atomic(pool: SqlitePool) {
+    let project_id = "p-1";
+    sqlx::query!("INSERT INTO projects (id, name, status, created_at, updated_at) VALUES (?, 'P1', 'open', 'now', 'now')", project_id).execute(&pool).await.unwrap();
+    let goal_id = "g-1";
+    sqlx::query!("INSERT INTO goals (id, project_id, title, status, is_archived, created_at, updated_at) VALUES (?, ?, 'G1', 'open', 0, 'now', 'now')", goal_id, project_id).execute(&pool).await.unwrap();
+
+    let task_completed = "t-completed";
+    sqlx::query!("INSERT INTO tasks (id, goal_id, title, status, is_archived, created_at, updated_at) VALUES (?, ?, 'T-Comp', 'completed', 0, 'now', 'now')", task_completed, goal_id).execute(&pool).await.unwrap();
+    
+    let task_archived = "t-archived";
+    sqlx::query!("INSERT INTO tasks (id, goal_id, title, status, is_archived, created_at, updated_at) VALUES (?, ?, 'T-Arch', 'open', 1, 'now', 'now')", task_archived, goal_id).execute(&pool).await.unwrap();
+
+    // Assert validation errors
+    let err = microtask_service::create_microtask(&pool, "m-1", task_completed, "Micro 1", 20, 1, None, None, 0).await.unwrap_err();
+    assert!(matches!(err, AppError::Validation(_)));
+
+    let err = microtask_service::create_microtask(&pool, "m-2", task_archived, "Micro 2", 20, 1, None, None, 0).await.unwrap_err();
+    assert!(matches!(err, AppError::Validation(_)));
+
+    // Assert not found
+    let err = microtask_service::create_microtask(&pool, "m-3", "nonexistent-task", "Micro 3", 20, 1, None, None, 0).await.unwrap_err();
+    assert!(matches!(err, AppError::NotFound { .. }));
+}

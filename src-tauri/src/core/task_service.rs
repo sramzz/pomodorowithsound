@@ -17,30 +17,35 @@ pub async fn create_task(
         tracing::warn!(id, "validation: task title must not be empty");
         return Err(AppError::Validation("task title must not be empty".into()));
     }
-    let parent = sqlx::query!("SELECT id, status, is_archived FROM goals WHERE id = ?", goal_id)
-        .fetch_optional(pool)
-        .await?;
-    let parent = parent.ok_or_else(|| AppError::NotFound {
-        entity: "goal",
-        id: goal_id.to_string(),
-    })?;
-    if parent.status == "completed" {
-        return Err(AppError::Validation("cannot create a task under a completed goal".into()));
-    }
-    if parent.is_archived != 0 {
-        return Err(AppError::Validation("cannot create a task under an archived goal".into()));
-    }
     let now = now_iso8601();
-    sqlx::query!(
+    let mut tx = pool.begin().await?;
+    let result = sqlx::query!(
         "INSERT INTO tasks (id, goal_id, title, description, deadline, priority, sort_order,
                             status, is_archived, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?,
-                 (SELECT COALESCE(MAX(sort_order) + 1, 0) FROM tasks WHERE goal_id = ?),
-                 'open', 0, ?, ?)",
-        id, goal_id, title, description, deadline, priority, goal_id, now, now
+         SELECT ?1, id, ?2, ?3, ?4, ?5,
+                (SELECT COALESCE(MAX(sort_order) + 1, 0) FROM tasks WHERE goal_id = ?6),
+                'open', 0, ?7, ?8
+         FROM goals WHERE id = ?9 AND status = 'open' AND is_archived = 0",
+        id, title, description, deadline, priority, goal_id, now, now, goal_id
     )
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
+
+    if result.rows_affected() == 0 {
+        let goal = sqlx::query!("SELECT status, is_archived FROM goals WHERE id = ?", goal_id)
+            .fetch_optional(&mut *tx)
+            .await?;
+        if let Some(g) = goal {
+            if g.status == "completed" {
+                return Err(AppError::Validation("cannot create a task under a completed goal".into()));
+            } else {
+                return Err(AppError::Validation("cannot create a task under an archived goal".into()));
+            }
+        } else {
+            return Err(AppError::NotFound { entity: "goal", id: goal_id.to_string() });
+        }
+    }
+    tx.commit().await?;
     Ok(())
 }
 

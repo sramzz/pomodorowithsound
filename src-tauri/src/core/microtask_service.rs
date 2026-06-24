@@ -53,37 +53,37 @@ pub async fn create_microtask(
 ) -> Result<(), AppError> {
     validate_microtask_fields(title, estimated_minutes, pomodoro_count)?;
     let title = title.trim();
-    let parent = sqlx::query!("SELECT id, status, is_archived FROM tasks WHERE id = ?", task_id)
-        .fetch_optional(pool)
-        .await?;
-    let parent = parent.ok_or_else(|| AppError::NotFound {
-        entity: "task",
-        id: task_id.to_string(),
-    })?;
-    if parent.status == "completed" {
-        return Err(AppError::Validation(
-            "cannot create a microtask under a completed task".into(),
-        ));
-    }
-    if parent.is_archived != 0 {
-        return Err(AppError::Validation(
-            "cannot create a microtask under an archived task".into(),
-        ));
-    }
     ensure_pomodoro_type_exists(pool, pomodoro_type_id).await?;
     let now = now_iso8601();
-    sqlx::query!(
+    let mut tx = pool.begin().await?;
+    let result = sqlx::query!(
         "INSERT INTO microtasks (id, task_id, title, estimated_minutes, pomodoro_count,
                                  pomodoro_type_id, deadline, priority, sort_order,
                                  status, is_archived, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?,
-                 (SELECT COALESCE(MAX(sort_order) + 1, 0) FROM microtasks WHERE task_id = ?),
-                 'open', 0, ?, ?)",
-        id, task_id, title, estimated_minutes, pomodoro_count,
-        pomodoro_type_id, deadline, priority, task_id, now, now
+         SELECT ?1, id, ?2, ?3, ?4, ?5, ?6, ?7,
+                (SELECT COALESCE(MAX(sort_order) + 1, 0) FROM microtasks WHERE task_id = ?8),
+                'open', 0, ?9, ?10
+         FROM tasks WHERE id = ?11 AND status = 'open' AND is_archived = 0",
+        id, title, estimated_minutes, pomodoro_count, pomodoro_type_id, deadline, priority, task_id, now, now, task_id
     )
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
+
+    if result.rows_affected() == 0 {
+        let task = sqlx::query!("SELECT status, is_archived FROM tasks WHERE id = ?", task_id)
+            .fetch_optional(&mut *tx)
+            .await?;
+        if let Some(t) = task {
+            if t.status == "completed" {
+                return Err(AppError::Validation("cannot create a microtask under a completed task".into()));
+            } else {
+                return Err(AppError::Validation("cannot create a microtask under an archived task".into()));
+            }
+        } else {
+            return Err(AppError::NotFound { entity: "task", id: task_id.to_string() });
+        }
+    }
+    tx.commit().await?;
     Ok(())
 }
 

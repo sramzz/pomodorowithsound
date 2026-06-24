@@ -93,3 +93,27 @@ async fn update_archive_delete_task(pool: SqlitePool) {
     let err = task_service::delete_task(&pool, "t1").await.unwrap_err();
     assert!(matches!(err, AppError::NotFound { .. }));
 }
+
+#[sqlx::test]
+async fn test_create_task_under_archived_or_completed_goal_atomic(pool: SqlitePool) {
+    // Seed a completed goal
+    let project_id = "p-1";
+    sqlx::query!("INSERT INTO projects (id, name, status, created_at, updated_at) VALUES (?, 'P1', 'open', 'now', 'now')", project_id).execute(&pool).await.unwrap();
+    
+    let goal_completed = "g-completed";
+    sqlx::query!("INSERT INTO goals (id, project_id, title, status, is_archived, created_at, updated_at) VALUES (?, ?, 'G-Comp', 'completed', 0, 'now', 'now')", goal_completed, project_id).execute(&pool).await.unwrap();
+    
+    let goal_archived = "g-archived";
+    sqlx::query!("INSERT INTO goals (id, project_id, title, status, is_archived, created_at, updated_at) VALUES (?, ?, 'G-Arch', 'open', 1, 'now', 'now')", goal_archived, project_id).execute(&pool).await.unwrap();
+
+    // Assert validation errors
+    let err = task_service::create_task(&pool, "t-1", goal_completed, "Task 1", None, None, 0).await.unwrap_err();
+    assert!(matches!(err, AppError::Validation(_)));
+
+    let err = task_service::create_task(&pool, "t-2", goal_archived, "Task 2", None, None, 0).await.unwrap_err();
+    assert!(matches!(err, AppError::Validation(_)));
+
+    // Assert not found
+    let err = task_service::create_task(&pool, "t-3", "nonexistent-goal", "Task 3", None, None, 0).await.unwrap_err();
+    assert!(matches!(err, AppError::NotFound { .. }));
+}
